@@ -1,0 +1,21 @@
+# Redirect default Netlify subdomain to primary domain
+https://ronak-sethiya-website.pages.dev/* https://ronak-sethiya-website.pages.dev/:splat 301!
+
+# Handle 404 errors
+/* /404.html 404
+
+# Ensure HTTPS
+http://* https://:splat 301!
+
+# Handle potential www subdomain
+https://www.ronak-sethiya-website.pages.dev/* https://ronak-sethiya-website.pages.dev/:splat 301!
+
+# Blog post redirects (if you change URLs in the future)
+/posts/* /posts/:splat 200
+/tags/* /tags/:splat 200
+/projects/* /projects/:splat 200
+
+# Handle index files
+/index.html / 301!
+/posts/index.html /posts/ 301!
+/projects/index.html /projects/ 301! 
