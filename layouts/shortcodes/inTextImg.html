@@ -1,0 +1,6 @@
+{{ $url := .Get "url" }}
+{{ $height := .Get "height" | default "20" }}
+{{ $width := .Get "width" | default "auto" }}
+{{ $alt := .Get "alt" | default "" }}
+
+<img src="{{ $url }}" height="{{ $height }}" width="{{ $width }}" alt="{{ $alt }}" style="display: inline; vertical-align: middle;" /> 

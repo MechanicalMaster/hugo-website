@@ -1,0 +1,9 @@
+{{ $id := delimit (shuffle (seq 1 9)) "" }}
+{{ $summary := .Get "summary" | default (dict "summary" "Click to expand") }}
+
+<details {{ if (eq (.Get "open" | default "false") "true") }}open{{ end }}>
+  <summary>{{ $summary | markdownify }}</summary>
+  <div class="details-content">
+    {{ .Inner | markdownify }}
+  </div>
+</details> 

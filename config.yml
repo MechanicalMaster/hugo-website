@@ -1,0 +1,116 @@
+# If your site is in 'https', then make sure your base url isn't written using 'http' otherwise your sitemap would
+# contain http (as opposeed to https) URLs. This would affect Google indexing of your URLs.
+baseURL: "https://ronak-sethiya-website.pages.dev/"
+title: Ronak Sethiya
+copyright: "© Ronak Sethiya"
+pagination:
+  pagerSize: 5
+theme: PaperMod
+
+enableInlineShortcodes: true
+enableRobotsTXT: true
+buildDrafts: false
+buildFuture: false
+buildExpired: false
+enableEmoji: true
+pygmentsUseClasses: true
+mainsections: ["posts"]
+
+minify:
+  disableXML: true
+  # minifyOutput: true
+
+languages:
+  en:
+    languageName: "English"
+    weight: 1
+    taxonomies:
+      category: categories
+      tag: tags
+      series: series
+    menu:
+      main:
+        - name: Search
+          url: search/
+          weight: 5
+        - name: Tags
+          url: tags/
+          weight: 10
+        - name: Projects
+          url: projects/
+          weight: 15
+
+outputs:
+  home:
+    - HTML
+    - RSS
+    - JSON
+
+params:
+  env: production # to enable google analytics, opengraph, twitter-cards and schema.
+  description: "Personal website of Ronak Sethiya"
+  author: Ronak Sethiya
+
+  defaultTheme: auto
+  ShowShareButtons: true
+  ShareButtons: ["linkedin", "whatsapp", "telegram"] # Only show these three sharing options
+  ShowReadingTime: true
+  displayFullLangName: true
+  ShowPostNavLinks: true
+  ShowBreadCrumbs: true
+  ShowCodeCopyButtons: true
+  ShowRssButtonInSectionTermList: true
+  ShowAllPagesInArchive: true
+  ShowPageNums: true
+  ShowToc: true
+  images: ["images/profile.png"]
+
+  profileMode:
+    enabled: true
+    title: Ronak Sethiya
+    imageUrl: "https://raw.githubusercontent.com/googlefonts/noto-emoji/master/svg/emoji_u1f9d1_1f3fb_200d_1f4bb.svg"
+    imageTitle: Profile Image
+    # imageWidth: 120
+    # imageHeight: 120
+    subtitle: "Product Manager | AI Maximalist"
+    buttons:
+      - name: Blog
+        url: posts
+      - name: Projects
+        url: projects
+
+  homeInfoParams:
+    Title: "Welcome to my Personal Website"
+    Content: >
+      👋 Hi there! I'm Ronak Sethiya.
+
+      - Prdudct Manager with a passion for building Products. Facinate by AI.
+      
+      - This site showcases my projects, blog posts, and everything else.
+
+  socialIcons:
+    - name: github
+      title: Check my Github Profile
+      url: "https://github.com/MechanicalMaster"
+    - name: linkedin
+      title: Connect with me on LinkedIn
+      url: "https://www.linkedin.com/in/ronaksethiya/"
+    - name: email
+      title: Send me an email
+      url: "mailto:ronak.sethiya@sjmsom.in"
+    - name: whatsapp
+      title: Connect with me on WhatsApp
+      url: "https://wa.me/8454881721"  # Replace with your actual WhatsApp number with country code
+    - name: cv
+      title: Download my CV
+      url: "/files/Ronak_Sethiya_CV.pdf"
+
+  assets:
+    disableHLJS: true
+
+markup:
+  goldmark:
+    renderer:
+      unsafe: true
+  highlight:
+    noClasses: false
