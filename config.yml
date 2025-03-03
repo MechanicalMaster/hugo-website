@@ -50,6 +50,12 @@ params:
   env: production # to enable google analytics, opengraph, twitter-cards and schema.
   description: "Personal website of Ronak Sethiya"
   author: Ronak Sethiya
+  
+  footer:
+    hideCopyright: false
+    hideCredits: false
+    hideFooter: false
+    text: "I wielded [Cursor](https://www.cursor.com/) like a maestro's baton, conducting the code into existence with my meticulous guidance, rigorous testing, and a dash of problem-solving flair."
 
   defaultTheme: auto
   ShowShareButtons: true
@@ -84,7 +90,7 @@ params:
     Content: >
       👋 Hi there! I'm Ronak Sethiya.
 
-      - Prdudct Manager with a passion for building Products. Facinate by AI.
+      - Product Manager with a passion for building Products. Facinated by AI.
       
       - This site showcases my projects, blog posts, and everything else.
 
