@@ -30,9 +30,6 @@ languages:
       series: series
     menu:
       main:
-        - name: Search
-          url: search/
-          weight: 5
         - name: Tags
           url: tags/
           weight: 10

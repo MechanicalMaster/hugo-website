@@ -15,3 +15,35 @@ iframe {
 .entry-cover img {
     border: 1px solid var(--border);
 }
+
+/* Reduce homepage vertical space on mobile to show footer */
+@media (max-width: 600px) {
+  .profile_inner img {
+    max-height: 80px !important;
+    width: auto !important;
+    margin-top: 8px !important;
+    margin-bottom: 8px !important;
+  }
+  .profile_inner h1 {
+    font-size: 1.3rem !important;
+    margin-bottom: 4px !important;
+    margin-top: 8px !important;
+  }
+  .profile_inner span {
+    font-size: 1rem !important;
+    margin-bottom: 4px !important;
+    display: block;
+  }
+  .profile_inner .buttons {
+    margin-bottom: 8px !important;
+    margin-top: 8px !important;
+  }
+  .profile_inner .social-icons, .profile_inner .social-icons ul {
+    margin-bottom: 8px !important;
+    margin-top: 8px !important;
+  }
+  .profile {
+    padding-bottom: 0 !important;
+    margin-bottom: 0 !important;
+  }
+}
