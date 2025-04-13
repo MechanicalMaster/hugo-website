@@ -1,9 +1,23 @@
 /**
  * AI Chat Widget for Hugo PaperMod theme
  * Responsive, modern, and matches PaperMod's minimalist style.
+ * Character card and pre-built bubbles included.
  * Requires: Cloudflare Worker endpoint at /api/chat
  */
 (function () {
+  // Character card info
+  const avatarUrl = "/images/ai-agents-cover.jpg"; // You can change this to your preferred avatar
+  const name = "Ronak Sethiya";
+  const subtitle = "Product Manager | AI Maximalist";
+  const description = "7+ years in digital product management, banking, and engineering. Ask me about technology, AI, banking, or product management!";
+
+  // Pre-built bubbles
+  const prebuiltBubbles = [
+    "Show me your latest project",
+    "Share your CV highlights",
+    "How can I contact you?"
+  ];
+
   // Create chat bubble button with custom SVG
   const bubble = document.createElement('div');
   bubble.id = 'ai-chat-bubble';
@@ -42,7 +56,7 @@
   chatWindow.style.right = '24px';
   chatWindow.style.width = '340px';
   chatWindow.style.maxWidth = '95vw';
-  chatWindow.style.height = '420px';
+  chatWindow.style.height = '480px';
   chatWindow.style.background = '#fff';
   chatWindow.style.border = 'none';
   chatWindow.style.borderRadius = '18px';
@@ -60,6 +74,17 @@
       <span style="font-size:1.15rem;font-weight:600;">Chat with AI Ronak</span>
       <button id="ai-chat-close" style="background:none;border:none;color:#fff;font-size:1.5rem;cursor:pointer;line-height:1;">×</button>
     </div>
+    <div id="ai-chat-character" style="display:flex;align-items:center;gap:16px;padding:16px 20px 8px 20px;background:#fff;">
+      <img src="${avatarUrl}" alt="Ronak Sethiya" style="width:48px;height:48px;border-radius:50%;border:2px solid #222;object-fit:cover;">
+      <div>
+        <div style="font-weight:600;font-size:1.05rem;color:#222;">${name}</div>
+        <div style="font-size:0.98rem;color:#444;">${subtitle}</div>
+        <div style="font-size:0.92rem;color:#666;margin-top:2px;">${description}</div>
+      </div>
+    </div>
+    <div id="ai-chat-bubbles" style="display:flex;gap:8px;flex-wrap:wrap;padding:0 20px 8px 20px;">
+      ${prebuiltBubbles.map(text => `<button class="ai-prebuilt-bubble" style="background:#f6f6f6;color:#222;border:none;border-radius:16px;padding:7px 16px;font-size:0.98rem;cursor:pointer;box-shadow:0 1px 2px rgba(0,0,0,0.04);transition:background 0.2s;">${text}</button>`).join('')}
+    </div>
     <div id="ai-chat-messages" style="flex:1;overflow-y:auto;padding:16px 12px 12px 12px;background:#fafafa;"></div>
     <form id="ai-chat-form" style="display:flex;gap:8px;padding:12px 12px 16px 12px;border-top:1px solid #eee;background:#fff;">
       <input id="ai-chat-input" type="text" placeholder="Type your message..." style="flex:1;padding:12px 14px;border-radius:10px;border:1.5px solid #e0e0e0;font-size:1rem;background:#f6f6f6;outline:none;transition:border 0.2s;">
@@ -73,7 +98,7 @@
     @media (max-width: 600px) {
       #ai-chat-window {
         width: 98vw !important;
-        height: 60vh !important;
+        height: 65vh !important;
         right: 1vw !important;
         bottom: 80px !important;
         border-radius: 12px !important;
@@ -93,6 +118,17 @@
         font-size: 0.95rem !important;
         padding: 10px 10px !important;
       }
+      #ai-chat-character img {
+        width: 38px !important;
+        height: 38px !important;
+      }
+      #ai-chat-character {
+        gap: 10px !important;
+        padding: 12px 10px 6px 10px !important;
+      }
+      #ai-chat-bubbles {
+        padding: 0 10px 6px 10px !important;
+      }
     }
     #ai-chat-window form button:active {
       background: #444 !important;
@@ -102,6 +138,9 @@
     }
     #ai-chat-window form input:focus {
       border: 1.5px solid #222 !important;
+    }
+    .ai-prebuilt-bubble:active, .ai-prebuilt-bubble:hover {
+      background: #e0e0e0 !important;
     }
   `;
   document.head.appendChild(style);
@@ -142,6 +181,14 @@
     messagesDiv.appendChild(msg);
     messagesDiv.scrollTop = messagesDiv.scrollHeight;
   }
+
+  // Pre-built bubble click logic
+  chatWindow.querySelectorAll('.ai-prebuilt-bubble').forEach(btn => {
+    btn.onclick = () => {
+      input.value = btn.textContent;
+      form.dispatchEvent(new Event('submit'));
+    };
+  });
 
   form.onsubmit = async (e) => {
     e.preventDefault();
