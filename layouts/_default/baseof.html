@@ -1,3 +1,4 @@
+
 {{- if lt hugo.Version "0.125.7" }}
 {{- errorf "=> hugo v0.125.7 or greater is required for hugo-PaperMod to build " }}
 {{- end -}}
@@ -22,7 +23,7 @@
         {{- block "main" . }}{{ end }}
     </main>
     {{ partialCached "footer.html" . .Layout .Kind (.Param "hideFooter") (.Param "ShowCodeCopyButtons") -}}
-    <script src="/js/ai-chat-widget.js" defer></script>
+    <script src="/js/ai-chat-widget.js?v=2" defer></script>
 </body>
 
 </html>
