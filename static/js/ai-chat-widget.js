@@ -1,7 +1,7 @@
 /**
  * AI Chat Widget for Hugo PaperMod theme
  * Responsive, modern, and matches PaperMod's minimalist style.
- * Now includes pre-made prompt cards and improved UX.
+ * Now includes pre-made prompt cards, improved UX, and animated callout for the chat bubble.
  * Requires: Cloudflare Worker endpoint at /api/chat
  */
 (function () {
@@ -40,9 +40,48 @@
   bubble.style.zIndex = '9999';
   bubble.style.boxShadow = '0 2px 8px rgba(0,0,0,0.12)';
   bubble.style.transition = 'transform 0.1s';
+
+  // Add pulse animation and tooltip for first-time users
+  const hasInteracted = localStorage.getItem('aiChatBubbleInteracted');
+  if (!hasInteracted) {
+    bubble.classList.add('ai-chat-bubble-pulse');
+    // Tooltip
+    const tooltip = document.createElement('div');
+    tooltip.id = 'ai-chat-bubble-tooltip';
+    tooltip.innerText = 'Chat with AI Ronak!';
+    tooltip.style.position = 'absolute';
+    tooltip.style.bottom = '64px';
+    tooltip.style.right = '0';
+    tooltip.style.background = '#222';
+    tooltip.style.color = '#fff';
+    tooltip.style.padding = '7px 16px';
+    tooltip.style.borderRadius = '8px';
+    tooltip.style.fontSize = '1rem';
+    tooltip.style.fontWeight = '500';
+    tooltip.style.boxShadow = '0 2px 8px rgba(0,0,0,0.12)';
+    tooltip.style.whiteSpace = 'nowrap';
+    tooltip.style.zIndex = '10000';
+    tooltip.style.opacity = '0.96';
+    tooltip.style.pointerEvents = 'none';
+    bubble.appendChild(tooltip);
+  }
   bubble.onmouseover = () => bubble.style.transform = 'scale(1.08)';
   bubble.onmouseout = () => bubble.style.transform = 'scale(1)';
   document.body.appendChild(bubble);
+
+  // Add pulse animation CSS
+  const pulseStyle = document.createElement('style');
+  pulseStyle.innerHTML = `
+    .ai-chat-bubble-pulse {
+      animation: ai-bubble-pulse 1.6s infinite;
+    }
+    @keyframes ai-bubble-pulse {
+      0% { box-shadow: 0 0 0 0 rgba(34,34,34,0.18); }
+      70% { box-shadow: 0 0 0 12px rgba(34,34,34,0.01); }
+      100% { box-shadow: 0 0 0 0 rgba(34,34,34,0.18); }
+    }
+  `;
+  document.head.appendChild(pulseStyle);
 
   // Create chat window
   const chatWindow = document.createElement('div');
@@ -133,6 +172,11 @@
         padding: 7px 10px !important;
         max-width: 98vw !important;
       }
+      #ai-chat-bubble-tooltip {
+        font-size: 0.95rem !important;
+        padding: 6px 10px !important;
+        bottom: 54px !important;
+      }
     }
     #ai-chat-window form button:active {
       background: #444 !important;
@@ -153,6 +197,13 @@
   bubble.onclick = () => {
     chatWindow.style.display = 'flex';
     bubble.style.display = 'none';
+    // Remove pulse and tooltip after first interaction
+    if (bubble.classList.contains('ai-chat-bubble-pulse')) {
+      bubble.classList.remove('ai-chat-bubble-pulse');
+      const tooltip = document.getElementById('ai-chat-bubble-tooltip');
+      if (tooltip) tooltip.remove();
+      localStorage.setItem('aiChatBubbleInteracted', '1');
+    }
   };
   chatWindow.querySelector('#ai-chat-close').onclick = () => {
     chatWindow.style.display = 'none';
