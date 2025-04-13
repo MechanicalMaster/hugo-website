@@ -66,15 +66,18 @@
   chatWindow.style.boxShadow = '0 4px 32px rgba(0,0,0,0.18)';
   chatWindow.style.overflow = 'hidden';
   chatWindow.style.transition = 'width 0.2s, height 0.2s';
+  chatWindow.style.display = 'none';
+  chatWindow.style.flexDirection = 'column';
+  chatWindow.style.justifyContent = 'flex-start';
   document.body.appendChild(chatWindow);
 
-  // Chat window content
+  // Chat window content (with flexbox layout for all sections)
   chatWindow.innerHTML = `
-    <div style="background:#222;color:#fff;padding:16px 20px;border-radius:18px 18px 0 0;display:flex;justify-content:space-between;align-items:center;">
+    <div style="background:#222;color:#fff;padding:16px 20px;border-radius:18px 18px 0 0;display:flex;justify-content:space-between;align-items:center;flex:0 0 auto;">
       <span style="font-size:1.15rem;font-weight:600;">Chat with AI Ronak</span>
       <button id="ai-chat-close" style="background:none;border:none;color:#fff;font-size:1.5rem;cursor:pointer;line-height:1;">×</button>
     </div>
-    <div id="ai-chat-character" style="display:flex;align-items:center;gap:16px;padding:16px 20px 8px 20px;background:#fff;">
+    <div id="ai-chat-character" style="display:flex;align-items:center;gap:16px;padding:16px 20px 8px 20px;background:#fff;flex:0 0 auto;">
       <img src="${avatarUrl}" alt="Ronak Sethiya" style="width:48px;height:48px;border-radius:50%;border:2px solid #222;object-fit:cover;">
       <div>
         <div style="font-weight:600;font-size:1.05rem;color:#222;">${name}</div>
@@ -82,11 +85,11 @@
         <div style="font-size:0.92rem;color:#666;margin-top:2px;">${description}</div>
       </div>
     </div>
-    <div id="ai-chat-bubbles" style="display:flex;gap:8px;flex-wrap:wrap;padding:0 20px 8px 20px;">
+    <div id="ai-chat-bubbles" style="display:flex;gap:8px;flex-wrap:wrap;padding:0 20px 8px 20px;flex:0 0 auto;">
       ${prebuiltBubbles.map(text => `<button class="ai-prebuilt-bubble" style="background:#f6f6f6;color:#222;border:none;border-radius:16px;padding:7px 16px;font-size:0.98rem;cursor:pointer;box-shadow:0 1px 2px rgba(0,0,0,0.04);transition:background 0.2s;">${text}</button>`).join('')}
     </div>
-    <div id="ai-chat-messages" style="flex:1;overflow-y:auto;padding:16px 12px 12px 12px;background:#fafafa;"></div>
-    <form id="ai-chat-form" style="display:flex;gap:8px;padding:12px 12px 16px 12px;border-top:1px solid #eee;background:#fff;">
+    <div id="ai-chat-messages" style="flex:1 1 auto;overflow-y:auto;padding:16px 12px 12px 12px;background:#fafafa;min-height:0;"></div>
+    <form id="ai-chat-form" style="display:flex;gap:8px;padding:12px 12px 16px 12px;border-top:1px solid #eee;background:#fff;flex:0 0 auto;">
       <input id="ai-chat-input" type="text" placeholder="Type your message..." style="flex:1;padding:12px 14px;border-radius:10px;border:1.5px solid #e0e0e0;font-size:1rem;background:#f6f6f6;outline:none;transition:border 0.2s;">
       <button type="submit" style="padding:0 22px;height:44px;border-radius:10px;border:none;background:#222;color:#fff;font-size:1rem;font-weight:500;cursor:pointer;transition:background 0.2s;">Send</button>
     </form>
@@ -119,15 +122,22 @@
         padding: 10px 10px !important;
       }
       #ai-chat-character img {
-        width: 38px !important;
-        height: 38px !important;
+        width: 32px !important;
+        height: 32px !important;
       }
       #ai-chat-character {
-        gap: 10px !important;
-        padding: 12px 10px 6px 10px !important;
+        gap: 8px !important;
+        padding: 8px 6px 4px 6px !important;
       }
       #ai-chat-bubbles {
-        padding: 0 10px 6px 10px !important;
+        padding: 0 6px 4px 6px !important;
+      }
+      #ai-chat-character div {
+        font-size: 0.92rem !important;
+      }
+      .ai-prebuilt-bubble {
+        font-size: 0.92rem !important;
+        padding: 6px 10px !important;
       }
     }
     #ai-chat-window form button:active {
