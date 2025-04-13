@@ -96,8 +96,14 @@
       });
       const data = await res.json();
       messagesDiv.lastChild.remove(); // remove '...'
-      appendMessage('ai', data.reply);
-      history.push({ role: 'assistant', content: data.reply });
+      if (data.reply) {
+        appendMessage('ai', data.reply);
+        history.push({ role: 'assistant', content: data.reply });
+      } else if (data.error) {
+        appendMessage('ai', "Error: " + (typeof data.error === "string" ? data.error : JSON.stringify(data.error)));
+      } else {
+        appendMessage('ai', 'Sorry, there was an unknown error.');
+      }
     } catch (err) {
       messagesDiv.lastChild.remove();
       appendMessage('ai', 'Sorry, there was an error.');
