@@ -73,37 +73,9 @@ Building reliable AI systems requires more than just clever algorithms—it dema
 
 ### LangGraph Workflow: Visualizing the Agent
 
-Ava’s intelligence is orchestrated by a modular LangGraph workflow. Here’s a Mermaid diagram that illustrates the flow of user messages through the agent’s nodes and decision points:
+Ava’s intelligence is orchestrated by a modular LangGraph workflow. Below is a visual diagram illustrating the flow of user messages through the agent’s nodes and decision points:
 
-```mermaid
-flowchart TD
-    START([START])
-    END([END])
-
-    START --> memory_extraction_node
-    memory_extraction_node --> router_node
-    router_node --> context_injection_node
-    context_injection_node --> memory_injection_node
-
-    %% Conditional branching from memory_injection_node
-    memory_injection_node -- select_workflow --> conversation_node
-    memory_injection_node -- select_workflow --> image_node
-    memory_injection_node -- select_workflow --> audio_node
-    memory_injection_node -- select_workflow --> reminder_node
-
-    %% Summarization checks after response nodes
-    conversation_node -- should_summarize_conversation --> summarize_conversation_node
-    image_node -- should_summarize_conversation --> summarize_conversation_node
-    audio_node -- should_summarize_conversation --> summarize_conversation_node
-
-    summarize_conversation_node --> END
-
-    %% Direct path to END if no summarization
-    conversation_node -- no_summarization --> END
-    image_node -- no_summarization --> END
-    audio_node -- no_summarization --> END
-    reminder_node --> END
-```
+![LangGraph Workflow for Ava AI Agent](/static/images/ava-langgraph-workflow.png "LangGraph workflow diagram for Ava AI Agent")
 
 **Explanation:**  
 - The workflow starts by extracting memories and routing the message.
