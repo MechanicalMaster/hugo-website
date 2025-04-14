@@ -8,47 +8,99 @@
   // Pre-made prompt cards
   const promptCards = [
     "Show me your latest project",
-    "Share your CV highlights",
     "What are your skills?",
-    "Tell me about your banking experience",
-    "What awards have you won?"
+    "Tell me about your banking experience"
   ];
 
   // Create chat bubble button with custom SVG
   const bubble = document.createElement('div');
   bubble.id = 'ai-chat-bubble';
+  // Detect theme (light/dark) using prefers-color-scheme and PaperMod class
+  function getTheme() {
+    if (document.documentElement.classList.contains('dark') ||
+        window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      return 'dark';
+    }
+    return 'light';
+  }
+  let theme = getTheme();
+
+  function setBubbleGradient() {
+    if (theme === 'dark') {
+      bubble.style.background = 'linear-gradient(135deg, #222 60%, #333 100%)';
+    } else {
+      bubble.style.background = 'linear-gradient(135deg, #fff 60%, #ededed 100%)';
+    }
+  }
+  setBubbleGradient();
+
+  // Listen for theme changes (PaperMod or OS)
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
+    theme = getTheme();
+    setBubbleGradient();
+    updateSVGColors();
+  });
+  const observer = new MutationObserver(() => {
+    const newTheme = getTheme();
+    if (newTheme !== theme) {
+      theme = newTheme;
+      setBubbleGradient();
+      updateSVGColors();
+    }
+  });
+  observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+
+  // SVG with animatable dots
   bubble.innerHTML = `
-    <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
-      <circle cx="18" cy="18" r="18" fill="#222"/>
-      <path d="M12 15a6 6 0 0 1 6-6h0a6 6 0 0 1 6 6v2a6 6 0 0 1-6 6h-1.5l-3.5 3v-3a6 6 0 0 1-1-3v-2z" fill="#fff"/>
-      <circle cx="16" cy="18" r="1" fill="#222"/>
-      <circle cx="18" cy="18" r="1" fill="#222"/>
-      <circle cx="20" cy="18" r="1" fill="#222"/>
+    <svg id="ai-bubble-svg" width="36" height="36" viewBox="0 0 36 36" fill="none">
+      <circle id="bubble-bg" cx="18" cy="18" r="18"/>
+      <path id="bubble-path" d="M12 15a6 6 0 0 1 6-6h0a6 6 0 0 1 6 6v2a6 6 0 0 1-6 6h-1.5l-3.5 3v-3a6 6 0 0 1-1-3v-2z"/>
+      <circle class="bubble-dot" cx="16" cy="18" r="1"/>
+      <circle class="bubble-dot" cx="18" cy="18" r="1"/>
+      <circle class="bubble-dot" cx="20" cy="18" r="1"/>
     </svg>
   `;
+  function updateSVGColors() {
+    const svg = bubble.querySelector('#ai-bubble-svg');
+    if (!svg) return;
+    svg.querySelector('#bubble-bg').setAttribute('fill', theme === 'dark' ? '#222' : '#fff');
+    svg.querySelector('#bubble-path').setAttribute('fill', theme === 'dark' ? '#fff' : '#222');
+    svg.querySelectorAll('.bubble-dot').forEach(dot => {
+      dot.setAttribute('fill', theme === 'dark' ? '#222' : '#444');
+    });
+  }
+  updateSVGColors();
+
   bubble.style.position = 'fixed';
   bubble.style.bottom = '24px';
   bubble.style.right = '24px';
   bubble.style.width = '56px';
   bubble.style.height = '56px';
-  bubble.style.background = 'transparent';
+  // background set by setBubbleGradient()
   bubble.style.border = 'none';
   bubble.style.display = 'flex';
   bubble.style.alignItems = 'center';
   bubble.style.justifyContent = 'center';
   bubble.style.cursor = 'pointer';
   bubble.style.zIndex = '9999';
-  bubble.style.boxShadow = '0 2px 8px rgba(0,0,0,0.12)';
-  bubble.style.transition = 'transform 0.1s';
+  bubble.style.boxShadow = '0 2px 12px rgba(34,34,34,0.18)';
+  bubble.style.transition = 'transform 0.1s, box-shadow 0.2s, background 0.3s';
 
   // Add pulse animation and tooltip for first-time users
   const hasInteracted = localStorage.getItem('aiChatBubbleInteracted');
   if (!hasInteracted) {
     bubble.classList.add('ai-chat-bubble-pulse');
-    // Tooltip
+    // Animated tooltip phrases
+    const tooltipPhrases = [
+      "Ask me about my projects!",
+      "Got a question?",
+      "Let’s chat!",
+      "Try a prompt below!"
+    ];
+    let tooltipIndex = 0;
     const tooltip = document.createElement('div');
     tooltip.id = 'ai-chat-bubble-tooltip';
-    tooltip.innerText = 'Chat with AI Ronak!';
+    tooltip.innerText = tooltipPhrases[0];
     tooltip.style.position = 'absolute';
     tooltip.style.bottom = '64px';
     tooltip.style.right = '0';
@@ -63,15 +115,42 @@
     tooltip.style.zIndex = '10000';
     tooltip.style.opacity = '0.96';
     tooltip.style.pointerEvents = 'none';
+    tooltip.style.transition = 'opacity 0.3s';
     bubble.appendChild(tooltip);
+
+    // Cycle phrases every 5s with fade
+    let tooltipInterval = setInterval(() => {
+      tooltip.style.opacity = '0';
+      setTimeout(() => {
+        tooltipIndex = (tooltipIndex + 1) % tooltipPhrases.length;
+        tooltip.innerText = tooltipPhrases[tooltipIndex];
+        tooltip.style.opacity = '0.96';
+      }, 300);
+    }, 5000);
+
+    // Remove tooltip and animation after interaction
+    bubble.addEventListener('click', () => {
+      clearInterval(tooltipInterval);
+      tooltip.remove();
+    }, { once: true });
   }
-  bubble.onmouseover = () => bubble.style.transform = 'scale(1.08)';
-  bubble.onmouseout = () => bubble.style.transform = 'scale(1)';
+  bubble.onmouseover = () => {
+    bubble.style.transform = 'scale(1.08)';
+    bubble.style.boxShadow = '0 4px 24px 0 rgba(34,34,34,0.28)';
+    // Optionally shift SVG color
+    const svg = bubble.querySelector('#ai-bubble-svg');
+    if (svg) svg.querySelector('#bubble-bg').setAttribute('fill', theme === 'dark' ? '#333' : '#ededed');
+  };
+  bubble.onmouseout = () => {
+    bubble.style.transform = 'scale(1)';
+    bubble.style.boxShadow = '0 2px 12px rgba(34,34,34,0.18)';
+    updateSVGColors();
+  };
   document.body.appendChild(bubble);
 
-  // Add pulse animation CSS
-  const pulseStyle = document.createElement('style');
-  pulseStyle.innerHTML = `
+  // Add pulse and dot animation CSS
+  const styleEnh = document.createElement('style');
+  styleEnh.innerHTML = `
     .ai-chat-bubble-pulse {
       animation: ai-bubble-pulse 1.6s infinite;
     }
@@ -80,8 +159,32 @@
       70% { box-shadow: 0 0 0 12px rgba(34,34,34,0.01); }
       100% { box-shadow: 0 0 0 0 rgba(34,34,34,0.18); }
     }
+    /* Animated dots in SVG */
+    .bubble-dot {
+      transform-origin: center;
+      animation: bubble-dot-bounce 1.2s infinite;
+    }
+    .bubble-dot:nth-child(3) { animation-delay: 0s; }
+    .bubble-dot:nth-child(4) { animation-delay: 0.2s; }
+    .bubble-dot:nth-child(5) { animation-delay: 0.4s; }
+    @keyframes bubble-dot-bounce {
+      0%, 100% { transform: scale(1); }
+      30% { transform: scale(1.2); }
+      60% { transform: scale(0.9); }
+    }
+    /* Light/dark mode adaptive bubble */
+    @media (prefers-color-scheme: dark) {
+      #ai-chat-bubble {
+        background: linear-gradient(135deg, #222 60%, #333 100%) !important;
+      }
+    }
+    @media (prefers-color-scheme: light) {
+      #ai-chat-bubble {
+        background: linear-gradient(135deg, #fff 60%, #ededed 100%) !important;
+      }
+    }
   `;
-  document.head.appendChild(pulseStyle);
+  document.head.appendChild(styleEnh);
 
   // Create chat window
   const chatWindow = document.createElement('div');
