@@ -219,33 +219,39 @@
   const inputText = theme === 'dark' ? '#ececec' : '#202020';
 
   chatWindow.innerHTML = `
-    <div style="background:${headerBg};color:${headerText};padding:14px 16px;border-bottom:1px solid ${headerBorder};display:flex;justify-content:space-between;align-items:center;">
-      <span style="font-size:1rem;font-weight:600;">ChatGPT-style Chat</span>
-      <button id="ai-chat-close" style="background:none;border:none;color:${headerText};font-size:1.4rem;cursor:pointer;line-height:1;opacity:0.7;transition:opacity 0.2s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.7'">×</button>
-    </div>
-    <div id="ai-chat-prompts" style="display:flex;flex-wrap:wrap;gap:8px;padding:16px;justify-content:flex-start;border-bottom:1px solid ${headerBorder};">
-      ${promptCards.map(card => `
-        <button class="ai-chat-prompt-card" style="
-          background:${promptBg};
-          color:${promptText};
-          border:1px solid ${inputBorder};
-          border-radius:6px;
-          padding:8px 12px;
-          font-size:0.875rem;
-          cursor:pointer;
-          transition:all 0.2s;
-          font-family:system-ui,-apple-system,sans-serif;
-        ">${card}</button>
-      `).join('')}
-    </div>
-    <div id="ai-chat-messages" style="flex:1;overflow-y:auto;padding:0;background:${messagesBg};"></div>
-    <form id="ai-chat-form" style="display:flex;gap:8px;padding:12px 16px;border-top:1px solid ${headerBorder};background:${headerBg};">
-      <input id="ai-chat-input" type="text" placeholder="Send a message..." style="flex:1;padding:10px 14px;border-radius:6px;border:1px solid ${inputBorder};font-size:0.95rem;background:${inputBg};color:${inputText};outline:none;transition:border 0.2s;font-family:system-ui,-apple-system,sans-serif;">
-      <button type="submit" id="ai-chat-send-btn" style="padding:0 16px;height:40px;border-radius:6px;border:none;background:#10a37f;color:#fff;font-size:0.9rem;font-weight:500;cursor:pointer;transition:background 0.2s;display:flex;align-items:center;justify-content:center;">
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style="transform:rotate(90deg);">
-          <path d="M.5 1.163A1 1 0 0 1 1.97.28l12.868 6.837a1 1 0 0 1 0 1.766L1.969 15.72A1 1 0 0 1 .5 14.836V10.33a1 1 0 0 1 .816-.983L8.5 8 1.316 6.653A1 1 0 0 1 .5 5.67V1.163Z" fill="currentColor"/>
+    <div style="background:${headerBg};color:${headerText};padding:20px 16px;border-bottom:1px solid ${headerBorder};display:flex;justify-content:flex-end;align-items:center;gap:12px;">
+      <button id="ai-chat-edit" style="background:none;border:none;color:${headerText};cursor:pointer;padding:8px;opacity:0.7;transition:opacity 0.2s;display:flex;align-items:center;justify-content:center;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.7'">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
         </svg>
       </button>
+      <button id="ai-chat-history" style="background:none;border:none;color:${headerText};cursor:pointer;padding:8px;opacity:0.7;transition:opacity 0.2s;display:flex;align-items:center;justify-content:center;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.7'">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"></circle>
+          <polyline points="12 6 12 12 16 14"></polyline>
+        </svg>
+      </button>
+      <button id="ai-chat-close" style="background:none;border:none;color:${headerText};cursor:pointer;padding:8px;opacity:0.7;transition:opacity 0.2s;display:flex;align-items:center;justify-content:center;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.7'">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+    </div>
+    <div id="ai-chat-messages" style="flex:1;overflow-y:auto;padding:24px 16px;background:${messagesBg};"></div>
+    <div style="padding:12px 16px;text-align:center;color:${theme === 'dark' ? '#999' : '#666'};font-size:0.75rem;font-family:system-ui,-apple-system,sans-serif;border-top:1px solid ${headerBorder};">
+      AI support can make mistakes
+    </div>
+    <form id="ai-chat-form" style="display:flex;gap:8px;padding:16px;background:${headerBg};">
+      <div style="flex:1;position:relative;">
+        <input id="ai-chat-input" type="text" placeholder="Ask a support question..." style="width:100%;padding:12px 16px;border-radius:24px;border:1px solid ${inputBorder};font-size:0.95rem;background:${inputBg};color:${inputText};outline:none;transition:border 0.2s;font-family:system-ui,-apple-system,sans-serif;padding-right:48px;">
+        <button type="submit" id="ai-chat-send-btn" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);width:32px;height:32px;border-radius:50%;border:none;background:${theme === 'dark' ? '#444' : '#e5e5e5'};color:${inputText};cursor:pointer;transition:background 0.2s;display:flex;align-items:center;justify-content:center;padding:0;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="18 15 12 9 6 15"></polyline>
+          </svg>
+        </button>
+      </div>
     </form>
   `;
 
@@ -266,17 +272,6 @@
         right: 12px !important;
         bottom: 12px !important;
       }
-      #ai-chat-send-btn {
-        padding: 0 12px !important;
-      }
-      #ai-chat-prompts {
-        gap: 6px !important;
-        padding: 12px !important;
-      }
-      .ai-chat-prompt-card {
-        font-size: 0.875rem !important;
-        padding: 8px 12px !important;
-      }
       #ai-chat-bubble-tooltip {
         font-size: 0.95rem !important;
         padding: 6px 10px !important;
@@ -284,21 +279,16 @@
       }
     }
 
-    /* ChatGPT-style hover effects */
+    /* Hover effects */
     #ai-chat-send-btn:hover {
-      background: #0d8a6a !important;
+      background: ${theme === 'dark' ? '#555' : '#d0d0d0'} !important;
     }
     #ai-chat-send-btn:disabled {
-      background: #d0d0d0 !important;
+      opacity: 0.5 !important;
       cursor: not-allowed !important;
     }
     #ai-chat-input:focus {
-      border: 1px solid #10a37f !important;
-      box-shadow: 0 0 0 1px #10a37f !important;
-    }
-    .ai-chat-prompt-card:hover {
-      background: ${theme === 'dark' ? '#3f3f3f' : '#ececec'} !important;
-      border-color: ${theme === 'dark' ? '#565656' : '#c0c0c0'} !important;
+      border: 1px solid ${theme === 'dark' ? '#666' : '#999'} !important;
     }
 
     /* Smooth message animations */
@@ -354,77 +344,40 @@
   const messagesDiv = chatWindow.querySelector('#ai-chat-messages');
   const form = chatWindow.querySelector('#ai-chat-form');
   const input = chatWindow.querySelector('#ai-chat-input');
-  const promptsDiv = chatWindow.querySelector('#ai-chat-prompts');
   let history = [];
-  let promptsVisible = true;
 
   function appendMessage(role, text) {
     const msg = document.createElement('div');
     const isUser = role === 'user';
-    const bgColor = theme === 'dark'
-      ? (isUser ? '#212121' : '#2f2f2f')
-      : (isUser ? '#fff' : '#f7f7f8');
     const textColor = theme === 'dark' ? '#ececec' : '#202020';
 
-    msg.style.padding = '16px 20px';
-    msg.style.background = bgColor;
-    msg.style.borderBottom = theme === 'dark' ? '1px solid #404040' : '1px solid #ececec';
+    msg.style.marginBottom = '16px';
+    msg.style.display = 'flex';
+    msg.style.justifyContent = isUser ? 'flex-end' : 'flex-start';
+
+    const bubbleBg = theme === 'dark'
+      ? (isUser ? '#2f2f2f' : '#2f2f2f')
+      : (isUser ? '#f0f0f0' : '#f7f7f8');
 
     msg.innerHTML = `
-      <div style="max-width:700px;margin:0 auto;display:flex;gap:16px;align-items:flex-start;">
-        <div style="
-          width:30px;
-          height:30px;
-          border-radius:4px;
-          background:${isUser ? '#5436da' : '#10a37f'};
-          color:#fff;
-          display:flex;
-          align-items:center;
-          justify-content:center;
-          font-size:0.875rem;
-          font-weight:600;
-          flex-shrink:0;
-          font-family:system-ui,-apple-system,sans-serif;
-        ">
-          ${isUser ? 'U' : 'AI'}
-        </div>
-        <div style="
-          flex:1;
-          color:${textColor};
-          font-size:0.95rem;
-          line-height:1.6;
-          word-break:break-word;
-          font-family:system-ui,-apple-system,sans-serif;
-          padding-top:4px;
-        ">
-          ${text}
-        </div>
+      <div style="
+        max-width:85%;
+        padding:12px 16px;
+        border-radius:18px;
+        background:${bubbleBg};
+        color:${textColor};
+        font-size:0.95rem;
+        line-height:1.5;
+        word-break:break-word;
+        font-family:system-ui,-apple-system,sans-serif;
+      ">
+        ${text}
       </div>
     `;
     messagesDiv.appendChild(msg);
     messagesDiv.scrollTop = messagesDiv.scrollHeight;
   }
 
-  // Handle prompt card click
-  promptsDiv.querySelectorAll('.ai-chat-prompt-card').forEach(btn => {
-    btn.onclick = () => {
-      input.value = btn.textContent;
-      form.dispatchEvent(new Event('submit'));
-    };
-  });
-
-  // Hide prompt cards after first message, but allow toggling
-  function hidePrompts() {
-    if (promptsVisible) {
-      promptsDiv.style.display = 'none';
-      promptsVisible = false;
-    }
-  }
-
-  function showPrompts() {
-    promptsDiv.style.display = 'flex';
-    promptsVisible = true;
-  }
 
   // Create typing indicator
   function createTypingIndicator() {
@@ -433,41 +386,22 @@
     const textColor = theme === 'dark' ? '#ececec' : '#202020';
 
     msg.className = 'typing-indicator';
-    msg.style.padding = '16px 20px';
-    msg.style.background = bgColor;
-    msg.style.borderBottom = theme === 'dark' ? '1px solid #404040' : '1px solid #ececec';
+    msg.style.marginBottom = '16px';
+    msg.style.display = 'flex';
+    msg.style.justifyContent = 'flex-start';
 
     msg.innerHTML = `
-      <div style="max-width:700px;margin:0 auto;display:flex;gap:16px;align-items:flex-start;">
-        <div style="
-          width:30px;
-          height:30px;
-          border-radius:4px;
-          background:#10a37f;
-          color:#fff;
-          display:flex;
-          align-items:center;
-          justify-content:center;
-          font-size:0.875rem;
-          font-weight:600;
-          flex-shrink:0;
-          font-family:system-ui,-apple-system,sans-serif;
-        ">
-          AI
-        </div>
-        <div style="
-          flex:1;
-          color:${textColor};
-          font-size:0.95rem;
-          line-height:1.6;
-          padding-top:8px;
-          font-family:system-ui,-apple-system,sans-serif;
-        ">
-          <div class="typing-dots" style="display:flex;gap:4px;">
-            <span style="width:8px;height:8px;border-radius:50%;background:${textColor};opacity:0.6;animation:typingDot 1.4s infinite;"></span>
-            <span style="width:8px;height:8px;border-radius:50%;background:${textColor};opacity:0.6;animation:typingDot 1.4s infinite 0.2s;"></span>
-            <span style="width:8px;height:8px;border-radius:50%;background:${textColor};opacity:0.6;animation:typingDot 1.4s infinite 0.4s;"></span>
-          </div>
+      <div style="
+        max-width:85%;
+        padding:12px 16px;
+        border-radius:18px;
+        background:${bgColor};
+        font-family:system-ui,-apple-system,sans-serif;
+      ">
+        <div class="typing-dots" style="display:flex;gap:4px;">
+          <span style="width:8px;height:8px;border-radius:50%;background:${textColor};opacity:0.6;animation:typingDot 1.4s infinite;"></span>
+          <span style="width:8px;height:8px;border-radius:50%;background:${textColor};opacity:0.6;animation:typingDot 1.4s infinite 0.2s;"></span>
+          <span style="width:8px;height:8px;border-radius:50%;background:${textColor};opacity:0.6;animation:typingDot 1.4s infinite 0.4s;"></span>
         </div>
       </div>
     `;
@@ -496,7 +430,6 @@
     messagesDiv.appendChild(typingIndicator);
     messagesDiv.scrollTop = messagesDiv.scrollHeight;
 
-    hidePrompts();
     try {
       const res = await fetch('/api/chat', {
         method: 'POST',
@@ -517,5 +450,22 @@
       typingIndicator.remove();
       appendMessage('ai', 'Sorry, there was an error.');
     }
+  };
+
+  // Add functionality to edit and history buttons
+  const editBtn = chatWindow.querySelector('#ai-chat-edit');
+  const historyBtn = chatWindow.querySelector('#ai-chat-history');
+
+  editBtn.onclick = () => {
+    // Clear current conversation
+    messagesDiv.innerHTML = '';
+    history = [];
+    input.focus();
+  };
+
+  historyBtn.onclick = () => {
+    // This could be extended to show conversation history
+    // For now, we'll just scroll to top
+    messagesDiv.scrollTop = 0;
   };
 })();
