@@ -241,11 +241,11 @@
     </div>
     <div id="ai-chat-messages" style="flex:1;overflow-y:auto;padding:24px 16px;background:${messagesBg};"></div>
     <div style="padding:12px 16px;text-align:center;color:${theme === 'dark' ? '#999' : '#666'};font-size:0.75rem;font-family:system-ui,-apple-system,sans-serif;border-top:1px solid ${headerBorder};">
-      AI support can make mistakes
+      AI can make mistakes
     </div>
     <form id="ai-chat-form" style="display:flex;gap:8px;padding:16px;background:${headerBg};">
       <div style="flex:1;position:relative;">
-        <input id="ai-chat-input" type="text" placeholder="Ask a support question..." style="width:100%;padding:12px 16px;border-radius:24px;border:1px solid ${inputBorder};font-size:0.95rem;background:${inputBg};color:${inputText};outline:none;transition:border 0.2s;font-family:system-ui,-apple-system,sans-serif;padding-right:48px;">
+        <input id="ai-chat-input" type="text" placeholder="Know more about Ronak Sethiya" style="width:100%;padding:12px 16px;border-radius:24px;border:1px solid ${inputBorder};font-size:0.95rem;background:${inputBg};color:${inputText};outline:none;transition:border 0.2s;font-family:system-ui,-apple-system,sans-serif;padding-right:48px;">
         <button type="submit" id="ai-chat-send-btn" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);width:32px;height:32px;border-radius:50%;border:none;background:${theme === 'dark' ? '#444' : '#e5e5e5'};color:${inputText};cursor:pointer;transition:background 0.2s;display:flex;align-items:center;justify-content:center;padding:0;">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <polyline points="18 15 12 9 6 15"></polyline>
@@ -346,6 +346,61 @@
   const input = chatWindow.querySelector('#ai-chat-input');
   let history = [];
 
+  // Suggested questions
+  const suggestedQuestions = [
+    "Show me your latest project",
+    "What are your skills?",
+    "Tell me about your Product Management experience"
+  ];
+
+  // Add suggested questions to the chat window
+  function showSuggestedQuestions() {
+    const container = document.createElement('div');
+    container.id = 'ai-suggested-questions';
+    container.style.display = 'flex';
+    container.style.flexDirection = 'column';
+    container.style.gap = '8px';
+    container.style.marginBottom = '16px';
+
+    suggestedQuestions.forEach(question => {
+      const bubble = document.createElement('div');
+      bubble.className = 'suggested-question-bubble';
+      bubble.style.padding = '12px 16px';
+      bubble.style.borderRadius = '18px';
+      bubble.style.background = theme === 'dark' ? '#2f2f2f' : '#f0f0f0';
+      bubble.style.color = theme === 'dark' ? '#ececec' : '#202020';
+      bubble.style.fontSize = '0.95rem';
+      bubble.style.cursor = 'pointer';
+      bubble.style.transition = 'background 0.2s';
+      bubble.style.fontFamily = 'system-ui,-apple-system,sans-serif';
+      bubble.style.border = `1px solid ${theme === 'dark' ? '#404040' : '#d9d9d9'}`;
+      bubble.textContent = question;
+
+      bubble.onmouseover = () => {
+        bubble.style.background = theme === 'dark' ? '#3f3f3f' : '#e5e5e5';
+      };
+      bubble.onmouseout = () => {
+        bubble.style.background = theme === 'dark' ? '#2f2f2f' : '#f0f0f0';
+      };
+      bubble.onclick = () => {
+        input.value = question;
+        form.dispatchEvent(new Event('submit'));
+        // Remove suggested questions after clicking
+        const suggestedContainer = document.getElementById('ai-suggested-questions');
+        if (suggestedContainer) {
+          suggestedContainer.remove();
+        }
+      };
+
+      container.appendChild(bubble);
+    });
+
+    messagesDiv.appendChild(container);
+  }
+
+  // Show suggested questions on load
+  showSuggestedQuestions();
+
   function appendMessage(role, text) {
     const msg = document.createElement('div');
     const isUser = role === 'user';
@@ -422,6 +477,13 @@
     e.preventDefault();
     const userMsg = input.value.trim();
     if (!userMsg) return;
+
+    // Remove suggested questions when user sends a message
+    const suggestedContainer = document.getElementById('ai-suggested-questions');
+    if (suggestedContainer) {
+      suggestedContainer.remove();
+    }
+
     appendMessage('user', userMsg);
     history.push({ role: 'user', content: userMsg });
     input.value = '';
@@ -460,6 +522,8 @@
     // Clear current conversation
     messagesDiv.innerHTML = '';
     history = [];
+    // Show suggested questions again
+    showSuggestedQuestions();
     input.focus();
   };
 
