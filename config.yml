@@ -52,7 +52,6 @@ params:
     hideCopyright: false
     hideCredits: false
     hideFooter: false
-    text: "I wielded [Cursor](https://www.cursor.com/) like a maestro's baton, conducting the code into existence with my meticulous guidance, rigorous testing, and a dash of problem-solving flair."
 
   defaultTheme: auto
   ShowShareButtons: true
@@ -100,7 +99,7 @@ params:
       url: "https://www.linkedin.com/in/ronaksethiya/"
     - name: email
       title: Send me an email
-      url: "mailto:ronak.sethiya@sjmsom.in"
+      url: "mailto:job@ronaksethiya.com"
     - name: whatsapp
       title: Connect with me on WhatsApp
       url: "https://wa.me/8454881721"  # Replace with your actual WhatsApp number with country code
