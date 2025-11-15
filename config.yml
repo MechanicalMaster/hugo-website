@@ -105,7 +105,7 @@ params:
       url: "https://wa.me/8454881721"  # Replace with your actual WhatsApp number with country code
     - name: cv
       title: Download my CV
-      url: "/files/Ronak_Sethiya_CV.pdf"
+      url: "/files/Ronak_Sethiya.pdf"
 
   assets:
     disableHLJS: true
