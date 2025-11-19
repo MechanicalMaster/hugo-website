@@ -14,7 +14,7 @@ buildFuture: false
 buildExpired: false
 enableEmoji: true
 pygmentsUseClasses: true
-mainsections: ["posts"]
+mainsections: ["projects"]
 
 minify:
   disableXML: true
@@ -76,8 +76,6 @@ params:
     # imageHeight: 120
     subtitle: "Product Manager | AI Maximalist"
     buttons:
-      - name: Blog
-        url: posts
       - name: Projects
         url: projects
 
