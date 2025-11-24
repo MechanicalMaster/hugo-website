@@ -535,17 +535,24 @@
 
   // Handle clicks on "Chat with my AI" button from homepage
   document.addEventListener('click', (e) => {
-    const target = e.target.closest('a[href="#open-chat"]');
+    // Check if the clicked element or its parent is a link with #open-chat or text "Chat with my AI"
+    const target = e.target.closest('a');
     if (target) {
-      e.preventDefault();
-      chatWindow.style.display = 'flex';
-      bubble.style.display = 'none';
-      // Remove pulse and tooltip after first interaction
-      if (bubble.classList.contains('ai-chat-bubble-pulse')) {
-        bubble.classList.remove('ai-chat-bubble-pulse');
-        const tooltip = document.getElementById('ai-chat-bubble-tooltip');
-        if (tooltip) tooltip.remove();
-        localStorage.setItem('aiChatBubbleInteracted', '1');
+      const href = target.getAttribute('href');
+      const text = target.textContent.trim();
+
+      // Check if href contains #open-chat or if text is "Chat with my AI"
+      if ((href && href.includes('#open-chat')) || text === 'Chat with my AI') {
+        e.preventDefault();
+        chatWindow.style.display = 'flex';
+        bubble.style.display = 'none';
+        // Remove pulse and tooltip after first interaction
+        if (bubble.classList.contains('ai-chat-bubble-pulse')) {
+          bubble.classList.remove('ai-chat-bubble-pulse');
+          const tooltip = document.getElementById('ai-chat-bubble-tooltip');
+          if (tooltip) tooltip.remove();
+          localStorage.setItem('aiChatBubbleInteracted', '1');
+        }
       }
     }
   });
