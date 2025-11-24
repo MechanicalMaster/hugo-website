@@ -47,3 +47,41 @@ iframe {
     margin-bottom: 0 !important;
   }
 }
+
+/* Chat with my AI button styling */
+.button[href="#open-chat"],
+a.button[href="#open-chat"] {
+  border: 2px solid var(--primary) !important;
+  background: transparent !important;
+  font-weight: 600 !important;
+  position: relative;
+  padding-left: 44px !important;
+  transition: all 0.3s ease !important;
+}
+
+.button[href="#open-chat"]::before,
+a.button[href="#open-chat"]::before {
+  content: '';
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 20px;
+  height: 20px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z'/%3E%3C/svg%3E");
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+}
+
+.button[href="#open-chat"]:hover,
+a.button[href="#open-chat"]:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+}
+
+/* Dark mode support for chat button icon */
+.dark .button[href="#open-chat"]::before,
+.dark a.button[href="#open-chat"]::before {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z'/%3E%3C/svg%3E");
+}
