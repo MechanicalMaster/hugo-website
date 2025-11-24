@@ -532,4 +532,21 @@
     // For now, we'll just scroll to top
     messagesDiv.scrollTop = 0;
   };
+
+  // Handle clicks on "Chat with my AI" button from homepage
+  document.addEventListener('click', (e) => {
+    const target = e.target.closest('a[href="#open-chat"]');
+    if (target) {
+      e.preventDefault();
+      chatWindow.style.display = 'flex';
+      bubble.style.display = 'none';
+      // Remove pulse and tooltip after first interaction
+      if (bubble.classList.contains('ai-chat-bubble-pulse')) {
+        bubble.classList.remove('ai-chat-bubble-pulse');
+        const tooltip = document.getElementById('ai-chat-bubble-tooltip');
+        if (tooltip) tooltip.remove();
+        localStorage.setItem('aiChatBubbleInteracted', '1');
+      }
+    }
+  });
 })();

@@ -78,6 +78,8 @@ params:
     buttons:
       - name: Projects
         url: projects
+      - name: Chat with my AI
+        url: "#open-chat"
 
   homeInfoParams:
     Title: "Welcome to my Personal Website"
