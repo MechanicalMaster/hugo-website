@@ -31,7 +31,6 @@ This website serves as my personal portfolio and blog, built using Hugo - a fast
 - 🎯 Projects showcase
 - 🔍 Search functionality
 - 🏷️ Tag-based organization
-- 📄 Downloadable CV
 - 🤝 Social media integration
 
 ### Customizations

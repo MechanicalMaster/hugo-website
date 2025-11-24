@@ -11,7 +11,6 @@ This is my personal website built using Hugo with the PaperMod theme. It serves 
 - Projects showcase
 - Search functionality
 - Tag-based organization
-- Downloadable CV
 - Social media integration
 
 ## 🛠️ Tech Stack
@@ -47,9 +46,9 @@ This is my personal website built using Hugo with the PaperMod theme. It serves 
 ├── content/           
 │   ├── posts/         # Blog posts
 │   └── projects/      # Project showcases
-├── static/            
+├── static/
 │   ├── images/        # Images and media
-│   └── files/         # Downloadable files (CV, etc.)
+│   └── files/         # Downloadable files
 └── themes/
     └── PaperMod/      # Theme files
 ```
