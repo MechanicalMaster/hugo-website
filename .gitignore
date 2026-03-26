@@ -53,3 +53,11 @@ Thumbs.db
 *.njsproj
 *.sln
 *.sw?
+
+
+# next.js output
+.next
+out
+node_modules
+.env.local
+
