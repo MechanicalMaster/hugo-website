@@ -14,18 +14,18 @@ export function Navbar() {
   const [open, setOpen] = useState(false)
 
   return (
-    <header className="sticky top-0 z-50 border-b border-[var(--border)] bg-[var(--bg)]/80 backdrop-blur-md">
-      <nav className="max-w-5xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-        {/* Logo */}
+    <header className="sticky top-0 z-50 bg-[var(--bg)]/80 backdrop-blur-md">
+      <nav className="max-w-5xl mx-auto px-6 sm:px-8 h-20 flex items-center justify-between">
+        {/* Logo — editorial brand treatment */}
         <Link
           href="/"
-          className="font-display text-lg font-normal tracking-tight text-[var(--fg)] hover:text-brand-500 transition-colors"
+          className="font-display text-2xl font-bold tracking-[-0.02em] text-[var(--fg)] hover:text-brand-500 transition-colors"
         >
           Ronak Sethiya
         </Link>
 
         {/* Desktop nav */}
-        <div className="hidden sm:flex items-center gap-6">
+        <div className="hidden sm:flex items-center gap-8">
           {navLinks.map((link) => (
             <Link
               key={link.href}
@@ -43,17 +43,17 @@ export function Navbar() {
           <ThemeToggle />
           <button
             onClick={() => setOpen(!open)}
-            className="w-9 h-9 flex items-center justify-center rounded-lg border border-[var(--border)] text-[var(--muted)]"
+            className="w-9 h-9 flex items-center justify-center rounded-lg text-[var(--muted)] hover:text-[var(--fg)] transition-colors"
             aria-label="Toggle menu"
           >
-            {open ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
+            {open ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
         </div>
       </nav>
 
       {/* Mobile menu */}
       {open && (
-        <div className="sm:hidden border-t border-[var(--border)] bg-[var(--bg)] px-4 py-4 flex flex-col gap-4">
+        <div className="sm:hidden bg-[var(--bg)] px-6 pb-6 flex flex-col gap-4">
           {navLinks.map((link) => (
             <Link
               key={link.href}

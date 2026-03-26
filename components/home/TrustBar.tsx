@@ -1,10 +1,8 @@
 export function TrustBar() {
   const companies = [
     { name: 'YES BANK', color: 'text-blue-600 dark:text-blue-400' },
-    { name: 'Razorpay', color: 'text-blue-500 dark:text-blue-300' },
-    { name: 'Perfios', color: 'text-green-600 dark:text-green-400' },
-    { name: 'Upstox', color: 'text-purple-600 dark:text-purple-400' },
-    { name: 'Crocs', color: 'text-orange-500 dark:text-orange-400' },
+    { name: 'IDFC FIRST BANK', color: 'text-emerald-600 dark:text-emerald-400' },
+    { name: 'L&T', color: 'text-slate-700 dark:text-slate-300' },
   ]
 
   return (
@@ -17,7 +15,7 @@ export function TrustBar() {
           {companies.map((c) => (
             <span
               key={c.name}
-              className={`font-semibold text-base sm:text-lg tracking-tight opacity-70 hover:opacity-100 transition-opacity ${c.color}`}
+              className={`font-bold text-base sm:text-lg tracking-tight opacity-70 hover:opacity-100 transition-opacity ${c.color}`}
             >
               {c.name}
             </span>

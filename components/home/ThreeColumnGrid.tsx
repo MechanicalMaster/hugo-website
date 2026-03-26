@@ -9,11 +9,18 @@ const experience = [
     badge: 'YB',
   },
   {
-    company: 'Razorpay',
-    role: 'Associate Product Manager',
-    period: '2021 – 2023',
-    color: 'from-blue-400 to-indigo-500',
-    badge: 'RP',
+    company: 'IDFC FIRST BANK',
+    role: 'Product Manager',
+    period: '2020 – Dec 2022',
+    color: 'from-emerald-500 to-emerald-600',
+    badge: 'IF',
+  },
+  {
+    company: 'L&T',
+    role: 'Engineer',
+    period: '2015 – 2018',
+    color: 'from-slate-500 to-slate-600',
+    badge: 'LT',
   },
 ]
 
