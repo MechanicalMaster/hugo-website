@@ -23,7 +23,6 @@ _testmain.go
 *.test
 
 # Hugo default output directory
-/public/
 /resources/_gen/
 /assets/jsconfig.json
 hugo_stats.json

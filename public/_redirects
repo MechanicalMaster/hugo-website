@@ -1,0 +1,16 @@
+# Redirect default Cloudflare subdomain to primary domain
+https://ronak-sethiya-website.pages.dev/* https://ronaksethiya.com/:splat 301!
+
+# Handle www subdomain
+https://www.ronaksethiya.com/* https://ronaksethiya.com/:splat 301!
+
+# Ensure HTTPS
+http://* https://:splat 301!
+
+# AI Chat API proxy to Cloudflare Worker
+/api/chat https://ai-chat-proxy.ronaksethiya.workers.dev/api/chat 200
+
+# Handle index files
+/index.html / 301!
+/posts/index.html /posts/ 301!
+/projects/index.html /projects/ 301!
