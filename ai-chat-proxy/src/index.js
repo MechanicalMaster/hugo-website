@@ -1,5 +1,17 @@
 export default {
   async fetch(request, env) {
+    const corsHeaders = {
+      "Access-Control-Allow-Origin": "https://ronaksethiya.com",
+      "Access-Control-Allow-Methods": "POST, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type",
+      "Access-Control-Max-Age": "86400",
+    };
+
+    // Handle CORS preflight
+    if (request.method === "OPTIONS") {
+      return new Response(null, { status: 204, headers: corsHeaders });
+    }
+
     // Handle feedback endpoint
     if (request.url.includes("/feedback")) {
       try {
@@ -8,13 +20,13 @@ export default {
         console.log(`Feedback: traceId=${traceId}, score=${score}, comment=${comment || "none"}`);
         return new Response(
           JSON.stringify({ status: "Feedback recorded" }),
-          { headers: { "Content-Type": "application/json" } }
+          { headers: { "Content-Type": "application/json", ...corsHeaders } }
         );
       } catch (error) {
         console.log(`Feedback error: ${error.message}`);
         return new Response(
           JSON.stringify({ error: "Invalid feedback submission" }),
-          { status: 400, headers: { "Content-Type": "application/json" } }
+          { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
         );
       }
     }
@@ -23,7 +35,7 @@ export default {
     if (request.method !== "POST") {
       return new Response(
         JSON.stringify({ error: "Method Not Allowed" }),
-        { status: 405, headers: { "Content-Type": "application/json" } }
+        { status: 405, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     }
 
@@ -36,20 +48,20 @@ export default {
       if (!message || typeof message !== "string" || message.length > 1000) {
         return new Response(
           JSON.stringify({ error: "Invalid or too long message" }),
-          { status: 400, headers: { "Content-Type": "application/json" } }
+          { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
         );
       }
       if (!Array.isArray(history) || history.length > 10) {
         return new Response(
           JSON.stringify({ error: "Invalid or too long history" }),
-          { status: 400, headers: { "Content-Type": "application/json" } }
+          { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
         );
       }
     } catch (error) {
       console.log(`Input error: ${error.message}`);
       return new Response(
         JSON.stringify({ error: "Invalid JSON body" }),
-        { status: 400, headers: { "Content-Type": "application/json" } }
+        { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     }
 
@@ -140,12 +152,12 @@ export default {
         if (openaiRes.status === 429) {
           return new Response(
             JSON.stringify({ error: "Rate limit exceeded, please try again later" }),
-            { status: 429, headers: { "Content-Type": "application/json" } }
+            { status: 429, headers: { "Content-Type": "application/json", ...corsHeaders } }
           );
         }
         return new Response(
           JSON.stringify({ error: errorMessage }),
-          { status: 500, headers: { "Content-Type": "application/json" } }
+          { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
         );
       }
 
@@ -159,7 +171,7 @@ export default {
         {
           headers: {
             "Content-Type": "application/json",
-            "Access-Control-Allow-Origin": "https://ronaksethiya.com"
+            ...corsHeaders
           }
         }
       );
@@ -167,7 +179,7 @@ export default {
       console.log(`Server error: ${error.message}`);
       return new Response(
         JSON.stringify({ error: "Server error: " + error.message }),
-        { status: 500, headers: { "Content-Type": "application/json" } }
+        { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     }
   }
