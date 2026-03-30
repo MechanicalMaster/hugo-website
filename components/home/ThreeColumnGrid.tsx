@@ -1,4 +1,5 @@
-import { Quote } from 'lucide-react'
+import Link from 'next/link'
+import { ExternalLink } from 'lucide-react'
 
 const experience = [
   {
@@ -74,26 +75,37 @@ export function ThreeColumnGrid() {
           </div>
         </div>
 
-        {/* Testimonial */}
+        {/* Project Highlight */}
         <div className="card p-6 bg-gradient-to-br from-brand-50/50 to-accent-500/5 dark:from-brand-900/20 dark:to-accent-500/5">
           <h3 className="font-semibold text-[var(--fg)] text-sm uppercase tracking-wider mb-4">
-            What Others Say
+            Project Highlight
           </h3>
-          <Quote className="w-6 h-6 text-brand-400 mb-3" />
-          <blockquote className="text-sm text-[var(--muted)] leading-relaxed italic mb-4">
-            &ldquo;Ronak has a rare ability to combine deep product thinking with
-            technical understanding. His work on our AI automation pipeline was
-            transformative — he shipped things others said couldn&apos;t be done.&rdquo;
-          </blockquote>
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-full bg-gradient-to-br from-brand-500 to-accent-500 flex items-center justify-center">
-              <span className="text-white text-xs font-bold">AS</span>
+          <div className="w-10 h-10 mb-3 rounded-xl bg-gradient-to-br from-brand-500 to-accent-500 flex items-center justify-center">
+            <span className="text-white text-lg">📊</span>
+          </div>
+          <div className="text-sm font-medium text-[var(--fg)] mb-2">
+            Early Warning Signal Dashboard
+          </div>
+          <p className="text-xs text-[var(--muted)] leading-relaxed mb-4">
+            Built a real-time credit risk monitoring dashboard for supply chain finance — automating stop-supply workflows and FLDG invocations.
+          </p>
+          <div className="flex items-center gap-3 mb-4">
+            <div className="text-center">
+              <div className="font-display text-lg text-gradient">60%</div>
+              <div className="text-[10px] text-[var(--muted)] leading-tight">Less monitoring time</div>
             </div>
-            <div>
-              <div className="text-xs font-medium text-[var(--fg)]">Aman Sharma</div>
-              <div className="text-xs text-[var(--muted)]">Colleague, YES BANK</div>
+            <div className="w-px h-8 bg-[var(--border)]" />
+            <div className="text-center">
+              <div className="font-display text-lg text-gradient">Live</div>
+              <div className="text-[10px] text-[var(--muted)] leading-tight">Deployed on Vercel</div>
             </div>
           </div>
+          <Link
+            href="/projects/early-warning-signal-dashboard/"
+            className="inline-flex items-center gap-1.5 text-xs font-medium text-brand-500 hover:text-brand-600 transition-colors"
+          >
+            Read case study <ExternalLink className="w-3 h-3" />
+          </Link>
         </div>
 
       </div>

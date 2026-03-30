@@ -1,7 +1,6 @@
 /**
- * AI Chat Widget for Hugo PaperMod theme
- * Responsive, modern, and matches PaperMod's minimalist style.
- * Now includes pre-made prompt cards, improved UX, and animated callout for the chat bubble.
+ * AI Chat Widget
+ * Premium blue-purple gradient theme matching the site's design system.
  * Requires: Cloudflare Worker endpoint at /api/chat
  */
 (function () {
@@ -12,10 +11,58 @@
     "Tell me about your banking experience"
   ];
 
+  // Site theme tokens
+  const T = {
+    light: {
+      bg: '#ffffff',
+      surface: '#F7F8FC',
+      fg: '#0f172a',
+      muted: '#64748b',
+      border: '#e2e8f0',
+      card: '#f8fafc',
+      cardBorder: '#e2e8f0',
+      inputBg: '#F7F8FC',
+      inputBorder: '#e2e8f0',
+      botBubble: '#F7F8FC',
+      botText: '#1A1A1A',
+      shadow: 'rgba(79,110,243,0.10)',
+      shadowHeavy: 'rgba(79,110,243,0.18)',
+      scrollThumb: '#cbd5e1',
+      scrollThumbHover: '#94a3b8',
+      chipBg: '#ffffff',
+      chipBorder: '#e2e8f0',
+      chipHover: '#f0f4ff',
+      disclaimerText: '#94a3b8',
+    },
+    dark: {
+      bg: '#0a0f1e',
+      surface: '#0f172a',
+      fg: '#e2e8f0',
+      muted: '#94a3b8',
+      border: '#1e293b',
+      card: '#0f172a',
+      cardBorder: '#1e293b',
+      inputBg: '#0f172a',
+      inputBorder: '#1e293b',
+      botBubble: '#0f172a',
+      botText: '#e2e8f0',
+      shadow: 'rgba(79,110,243,0.15)',
+      shadowHeavy: 'rgba(79,110,243,0.25)',
+      scrollThumb: '#1e293b',
+      scrollThumbHover: '#334155',
+      chipBg: '#0f172a',
+      chipBorder: '#1e293b',
+      chipHover: '#1a2680',
+      disclaimerText: '#64748b',
+    },
+  };
+  const GRADIENT = 'linear-gradient(135deg, #4f6ef3 0%, #8b5cf6 100%)';
+  const GRADIENT_HOVER = 'linear-gradient(135deg, #3b55e8 0%, #7c3aed 100%)';
+
   // Create chat bubble button with custom SVG
   const bubble = document.createElement('div');
   bubble.id = 'ai-chat-bubble';
-  // Detect theme (light/dark) using prefers-color-scheme and PaperMod class
+
   function getTheme() {
     if (document.documentElement.classList.contains('dark') ||
         window.matchMedia('(prefers-color-scheme: dark)').matches) {
@@ -24,17 +71,14 @@
     return 'light';
   }
   let theme = getTheme();
+  function t() { return T[theme]; }
 
   function setBubbleGradient() {
-    if (theme === 'dark') {
-      bubble.style.background = 'linear-gradient(135deg, #222 60%, #333 100%)';
-    } else {
-      bubble.style.background = 'linear-gradient(135deg, #fff 60%, #ededed 100%)';
-    }
+    bubble.style.background = GRADIENT;
   }
   setBubbleGradient();
 
-  // Listen for theme changes (PaperMod or OS)
+  // Listen for theme changes
   window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
     theme = getTheme();
     setBubbleGradient();
@@ -53,20 +97,20 @@
   // SVG with animatable dots
   bubble.innerHTML = `
     <svg id="ai-bubble-svg" width="36" height="36" viewBox="0 0 36 36" fill="none">
-      <circle id="bubble-bg" cx="18" cy="18" r="18"/>
-      <path id="bubble-path" d="M12 15a6 6 0 0 1 6-6h0a6 6 0 0 1 6 6v2a6 6 0 0 1-6 6h-1.5l-3.5 3v-3a6 6 0 0 1-1-3v-2z"/>
-      <circle class="bubble-dot" cx="16" cy="18" r="1"/>
-      <circle class="bubble-dot" cx="18" cy="18" r="1"/>
-      <circle class="bubble-dot" cx="20" cy="18" r="1"/>
+      <circle id="bubble-bg" cx="18" cy="18" r="18" fill="transparent"/>
+      <path id="bubble-path" d="M12 15a6 6 0 0 1 6-6h0a6 6 0 0 1 6 6v2a6 6 0 0 1-6 6h-1.5l-3.5 3v-3a6 6 0 0 1-1-3v-2z" fill="#ffffff"/>
+      <circle class="bubble-dot" cx="16" cy="18" r="1" fill="rgba(79,110,243,0.7)"/>
+      <circle class="bubble-dot" cx="18" cy="18" r="1" fill="rgba(79,110,243,0.7)"/>
+      <circle class="bubble-dot" cx="20" cy="18" r="1" fill="rgba(79,110,243,0.7)"/>
     </svg>
   `;
   function updateSVGColors() {
     const svg = bubble.querySelector('#ai-bubble-svg');
     if (!svg) return;
-    svg.querySelector('#bubble-bg').setAttribute('fill', theme === 'dark' ? '#222' : '#fff');
-    svg.querySelector('#bubble-path').setAttribute('fill', theme === 'dark' ? '#fff' : '#222');
+    svg.querySelector('#bubble-bg').setAttribute('fill', 'transparent');
+    svg.querySelector('#bubble-path').setAttribute('fill', '#ffffff');
     svg.querySelectorAll('.bubble-dot').forEach(dot => {
-      dot.setAttribute('fill', theme === 'dark' ? '#222' : '#444');
+      dot.setAttribute('fill', 'rgba(79,110,243,0.7)');
     });
   }
   updateSVGColors();
@@ -76,25 +120,24 @@
   bubble.style.right = '24px';
   bubble.style.width = '56px';
   bubble.style.height = '56px';
-  // background set by setBubbleGradient()
+  bubble.style.borderRadius = '16px';
   bubble.style.border = 'none';
   bubble.style.display = 'flex';
   bubble.style.alignItems = 'center';
   bubble.style.justifyContent = 'center';
   bubble.style.cursor = 'pointer';
   bubble.style.zIndex = '9999';
-  bubble.style.boxShadow = '0 2px 12px rgba(34,34,34,0.18)';
-  bubble.style.transition = 'transform 0.1s, box-shadow 0.2s, background 0.3s';
+  bubble.style.boxShadow = '0 4px 24px rgba(79,110,243,0.25), 0 2px 8px rgba(139,92,246,0.15)';
+  bubble.style.transition = 'transform 0.2s ease, box-shadow 0.3s ease';
 
   // Add pulse animation and tooltip for first-time users
   const hasInteracted = localStorage.getItem('aiChatBubbleInteracted');
   if (!hasInteracted) {
     bubble.classList.add('ai-chat-bubble-pulse');
-    // Animated tooltip phrases
     const tooltipPhrases = [
       "Ask me about my projects!",
       "Got a question?",
-      "Let’s chat!",
+      "Let's chat!",
       "Try a prompt below!"
     ];
     let tooltipIndex = 0;
@@ -104,31 +147,30 @@
     tooltip.style.position = 'absolute';
     tooltip.style.bottom = '64px';
     tooltip.style.right = '0';
-    tooltip.style.background = '#222';
+    tooltip.style.background = GRADIENT;
     tooltip.style.color = '#fff';
-    tooltip.style.padding = '7px 16px';
-    tooltip.style.borderRadius = '8px';
-    tooltip.style.fontSize = '1rem';
+    tooltip.style.padding = '8px 16px';
+    tooltip.style.borderRadius = '12px';
+    tooltip.style.fontSize = '0.875rem';
     tooltip.style.fontWeight = '500';
-    tooltip.style.boxShadow = '0 2px 8px rgba(0,0,0,0.12)';
+    tooltip.style.boxShadow = '0 4px 16px rgba(79,110,243,0.25)';
     tooltip.style.whiteSpace = 'nowrap';
     tooltip.style.zIndex = '10000';
-    tooltip.style.opacity = '0.96';
+    tooltip.style.opacity = '1';
     tooltip.style.pointerEvents = 'none';
-    tooltip.style.transition = 'opacity 0.3s';
+    tooltip.style.transition = 'opacity 0.3s ease';
+    tooltip.style.fontFamily = 'system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif';
     bubble.appendChild(tooltip);
 
-    // Cycle phrases every 5s with fade
     let tooltipInterval = setInterval(() => {
       tooltip.style.opacity = '0';
       setTimeout(() => {
         tooltipIndex = (tooltipIndex + 1) % tooltipPhrases.length;
         tooltip.innerText = tooltipPhrases[tooltipIndex];
-        tooltip.style.opacity = '0.96';
+        tooltip.style.opacity = '1';
       }, 300);
     }, 5000);
 
-    // Remove tooltip and animation after interaction
     bubble.addEventListener('click', () => {
       clearInterval(tooltipInterval);
       tooltip.remove();
@@ -136,15 +178,11 @@
   }
   bubble.onmouseover = () => {
     bubble.style.transform = 'scale(1.08)';
-    bubble.style.boxShadow = '0 4px 24px 0 rgba(34,34,34,0.28)';
-    // Optionally shift SVG color
-    const svg = bubble.querySelector('#ai-bubble-svg');
-    if (svg) svg.querySelector('#bubble-bg').setAttribute('fill', theme === 'dark' ? '#333' : '#ededed');
+    bubble.style.boxShadow = '0 8px 32px rgba(79,110,243,0.35), 0 4px 12px rgba(139,92,246,0.2)';
   };
   bubble.onmouseout = () => {
     bubble.style.transform = 'scale(1)';
-    bubble.style.boxShadow = '0 2px 12px rgba(34,34,34,0.18)';
-    updateSVGColors();
+    bubble.style.boxShadow = '0 4px 24px rgba(79,110,243,0.25), 0 2px 8px rgba(139,92,246,0.15)';
   };
   document.body.appendChild(bubble);
 
@@ -152,12 +190,12 @@
   const styleEnh = document.createElement('style');
   styleEnh.innerHTML = `
     .ai-chat-bubble-pulse {
-      animation: ai-bubble-pulse 1.6s infinite;
+      animation: ai-bubble-pulse 2s infinite;
     }
     @keyframes ai-bubble-pulse {
-      0% { box-shadow: 0 0 0 0 rgba(34,34,34,0.18); }
-      70% { box-shadow: 0 0 0 12px rgba(34,34,34,0.01); }
-      100% { box-shadow: 0 0 0 0 rgba(34,34,34,0.18); }
+      0% { box-shadow: 0 4px 24px rgba(79,110,243,0.25); }
+      50% { box-shadow: 0 4px 24px rgba(79,110,243,0.25), 0 0 0 10px rgba(79,110,243,0.08); }
+      100% { box-shadow: 0 4px 24px rgba(79,110,243,0.25), 0 0 0 0 rgba(79,110,243,0); }
     }
     /* Animated dots in SVG */
     .bubble-dot {
@@ -172,16 +210,8 @@
       30% { transform: scale(1.2); }
       60% { transform: scale(0.9); }
     }
-    /* Light/dark mode adaptive bubble */
-    @media (prefers-color-scheme: dark) {
-      #ai-chat-bubble {
-        background: linear-gradient(135deg, #222 60%, #333 100%) !important;
-      }
-    }
-    @media (prefers-color-scheme: light) {
-      #ai-chat-bubble {
-        background: linear-gradient(135deg, #fff 60%, #ededed 100%) !important;
-      }
+    #ai-chat-bubble {
+      border-radius: 16px !important;
     }
   `;
   document.head.appendChild(styleEnh);
@@ -196,58 +226,84 @@
   chatWindow.style.maxWidth = '95vw';
   chatWindow.style.height = '600px';
   chatWindow.style.maxHeight = '85vh';
-  chatWindow.style.background = theme === 'dark' ? '#212121' : '#fff';
-  chatWindow.style.border = theme === 'dark' ? '1px solid #404040' : '1px solid #d9d9d9';
-  chatWindow.style.borderRadius = '12px';
+  chatWindow.style.background = t().bg;
+  chatWindow.style.border = 'none';
+  chatWindow.style.borderRadius = '16px';
   chatWindow.style.display = 'none';
   chatWindow.style.flexDirection = 'column';
   chatWindow.style.zIndex = '10000';
-  chatWindow.style.boxShadow = '0 8px 40px rgba(0,0,0,0.12)';
+  chatWindow.style.boxShadow = `0 24px 80px ${t().shadow}, 0 8px 32px rgba(0,0,0,0.08)`;
   chatWindow.style.overflow = 'hidden';
-  chatWindow.style.transition = 'width 0.2s, height 0.2s, background 0.3s, border 0.3s';
+  chatWindow.style.transition = 'width 0.2s, height 0.2s, background 0.3s';
   document.body.appendChild(chatWindow);
 
-  // Chat window content with prompt cards
-  const headerBg = theme === 'dark' ? '#212121' : '#fff';
-  const headerBorder = theme === 'dark' ? '#404040' : '#e5e5e5';
-  const headerText = theme === 'dark' ? '#ececec' : '#202020';
-  const promptBg = theme === 'dark' ? '#2f2f2f' : '#f4f4f4';
-  const promptText = theme === 'dark' ? '#ececec' : '#202020';
-  const messagesBg = theme === 'dark' ? '#212121' : '#fff';
-  const inputBg = theme === 'dark' ? '#2f2f2f' : '#fff';
-  const inputBorder = theme === 'dark' ? '#404040' : '#d9d9d9';
-  const inputText = theme === 'dark' ? '#ececec' : '#202020';
-
   chatWindow.innerHTML = `
-    <div style="background:${headerBg};color:${headerText};padding:20px 16px;border-bottom:1px solid ${headerBorder};display:flex;justify-content:flex-end;align-items:center;gap:12px;">
-      <button id="ai-chat-edit" style="background:none;border:none;color:${headerText};cursor:pointer;padding:8px;opacity:0.7;transition:opacity 0.2s;display:flex;align-items:center;justify-content:center;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.7'">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-        </svg>
-      </button>
-      <button id="ai-chat-history" style="background:none;border:none;color:${headerText};cursor:pointer;padding:8px;opacity:0.7;transition:opacity 0.2s;display:flex;align-items:center;justify-content:center;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.7'">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="12" cy="12" r="10"></circle>
-          <polyline points="12 6 12 12 16 14"></polyline>
-        </svg>
-      </button>
-      <button id="ai-chat-close" style="background:none;border:none;color:${headerText};cursor:pointer;padding:8px;opacity:0.7;transition:opacity 0.2s;display:flex;align-items:center;justify-content:center;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.7'">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <line x1="18" y1="6" x2="6" y2="18"></line>
-          <line x1="6" y1="6" x2="18" y2="18"></line>
-        </svg>
-      </button>
+    <div id="ai-chat-header" style="
+      background:${GRADIENT};
+      color:#ffffff;
+      padding:20px 20px;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+    ">
+      <div style="display:flex;flex-direction:column;gap:3px;">
+        <span style="font-size:0.95rem;font-weight:600;font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;letter-spacing:-0.01em;">Ask my AI about what I've built</span>
+        <span style="font-size:0.7rem;font-weight:400;opacity:0.75;font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">Trained on my product work and case studies</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:4px;">
+        <button id="ai-chat-edit" style="background:rgba(255,255,255,0.15);border:none;color:#fff;cursor:pointer;padding:6px;border-radius:8px;transition:background 0.2s;display:flex;align-items:center;justify-content:center;" onmouseover="this.style.background='rgba(255,255,255,0.25)'" onmouseout="this.style.background='rgba(255,255,255,0.15)'">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+          </svg>
+        </button>
+        <button id="ai-chat-close" style="background:rgba(255,255,255,0.15);border:none;color:#fff;cursor:pointer;padding:6px;border-radius:8px;transition:background 0.2s;display:flex;align-items:center;justify-content:center;" onmouseover="this.style.background='rgba(255,255,255,0.25)'" onmouseout="this.style.background='rgba(255,255,255,0.15)'">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
     </div>
-    <div id="ai-chat-messages" style="flex:1;overflow-y:auto;padding:24px 16px;background:${messagesBg};"></div>
-    <div style="padding:12px 16px;text-align:center;color:${theme === 'dark' ? '#999' : '#666'};font-size:0.75rem;font-family:system-ui,-apple-system,sans-serif;border-top:1px solid ${headerBorder};">
+    <div id="ai-chat-messages" style="flex:1;overflow-y:auto;padding:20px;background:${t().bg};"></div>
+    <div style="padding:8px 16px;text-align:center;color:${t().disclaimerText};font-size:0.7rem;font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
       AI can make mistakes
     </div>
-    <form id="ai-chat-form" style="display:flex;gap:8px;padding:16px;background:${headerBg};">
+    <form id="ai-chat-form" style="display:flex;gap:8px;padding:12px 16px 16px;background:${t().bg};">
       <div style="flex:1;position:relative;">
-        <input id="ai-chat-input" type="text" placeholder="Know more about Ronak Sethiya" style="width:100%;padding:12px 16px;border-radius:24px;border:1px solid ${inputBorder};font-size:0.95rem;background:${inputBg};color:${inputText};outline:none;transition:border 0.2s;font-family:system-ui,-apple-system,sans-serif;padding-right:48px;">
-        <button type="submit" id="ai-chat-send-btn" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);width:32px;height:32px;border-radius:50%;border:none;background:${theme === 'dark' ? '#444' : '#e5e5e5'};color:${inputText};cursor:pointer;transition:background 0.2s;display:flex;align-items:center;justify-content:center;padding:0;">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <input id="ai-chat-input" type="text" placeholder="Ask about my work..." style="
+          width:100%;
+          padding:12px 48px 12px 16px;
+          border-radius:14px;
+          border:1px solid ${t().border};
+          font-size:0.9rem;
+          background:${t().inputBg};
+          color:${t().fg};
+          outline:none;
+          transition:border-color 0.2s ease, box-shadow 0.2s ease;
+          font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+          line-height:1.5;
+        ">
+        <button type="submit" id="ai-chat-send-btn" style="
+          position:absolute;
+          right:6px;
+          top:50%;
+          transform:translateY(-50%);
+          width:34px;
+          height:34px;
+          border-radius:10px;
+          border:none;
+          background:${GRADIENT};
+          color:#ffffff;
+          cursor:pointer;
+          transition:transform 0.15s ease, box-shadow 0.2s ease;
+          display:flex;
+          align-items:center;
+          justify-content:center;
+          padding:0;
+          box-shadow:0 2px 8px rgba(79,110,243,0.3);
+        ">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
             <polyline points="18 15 12 9 6 15"></polyline>
           </svg>
         </button>
@@ -264,7 +320,7 @@
         height: 70vh !important;
         right: 1vw !important;
         bottom: 80px !important;
-        border-radius: 12px !important;
+        border-radius: 16px !important;
       }
       #ai-chat-bubble {
         width: 48px !important;
@@ -273,32 +329,42 @@
         bottom: 12px !important;
       }
       #ai-chat-bubble-tooltip {
-        font-size: 0.95rem !important;
-        padding: 6px 10px !important;
+        font-size: 0.85rem !important;
+        padding: 6px 12px !important;
         bottom: 54px !important;
       }
     }
 
-    /* Hover effects */
+    /* Send button hover */
     #ai-chat-send-btn:hover {
-      background: ${theme === 'dark' ? '#555' : '#d0d0d0'} !important;
+      transform: translateY(-50%) scale(1.06) !important;
+      box-shadow: 0 4px 14px rgba(79,110,243,0.4) !important;
+    }
+    #ai-chat-send-btn:active {
+      transform: translateY(-50%) scale(0.96) !important;
     }
     #ai-chat-send-btn:disabled {
       opacity: 0.5 !important;
       cursor: not-allowed !important;
     }
+
+    /* Input focus */
     #ai-chat-input:focus {
-      border: 1px solid ${theme === 'dark' ? '#666' : '#999'} !important;
+      border-color: #6b8ef7 !important;
+      box-shadow: 0 0 0 3px rgba(79,110,243,0.1) !important;
+    }
+    #ai-chat-input::placeholder {
+      color: #94a3b8;
     }
 
     /* Smooth message animations */
     #ai-chat-messages > div {
-      animation: fadeInMessage 0.3s ease-in;
+      animation: fadeInMessage 0.35s ease-out;
     }
     @keyframes fadeInMessage {
       from {
         opacity: 0;
-        transform: translateY(10px);
+        transform: translateY(8px);
       }
       to {
         opacity: 1;
@@ -306,19 +372,33 @@
       }
     }
 
+    /* Prompt chip hover */
+    .suggested-question-bubble {
+      transition: all 0.2s ease !important;
+    }
+    .suggested-question-bubble:active {
+      transform: scale(0.97) !important;
+    }
+
     /* Custom scrollbar */
     #ai-chat-messages::-webkit-scrollbar {
-      width: 8px;
+      width: 6px;
     }
     #ai-chat-messages::-webkit-scrollbar-track {
       background: transparent;
     }
     #ai-chat-messages::-webkit-scrollbar-thumb {
-      background: ${theme === 'dark' ? '#404040' : '#d0d0d0'};
-      border-radius: 4px;
+      background: #cbd5e1;
+      border-radius: 3px;
     }
     #ai-chat-messages::-webkit-scrollbar-thumb:hover {
-      background: ${theme === 'dark' ? '#565656' : '#b0b0b0'};
+      background: #94a3b8;
+    }
+    .dark #ai-chat-messages::-webkit-scrollbar-thumb {
+      background: #1e293b;
+    }
+    .dark #ai-chat-messages::-webkit-scrollbar-thumb:hover {
+      background: #334155;
     }
   `;
   document.head.appendChild(style);
@@ -363,36 +443,40 @@
     container.style.marginBottom = '16px';
 
     suggestedQuestions.forEach(question => {
-      const bubble = document.createElement('div');
-      bubble.className = 'suggested-question-bubble';
-      bubble.style.padding = '12px 16px';
-      bubble.style.borderRadius = '18px';
-      bubble.style.background = theme === 'dark' ? '#2f2f2f' : '#f0f0f0';
-      bubble.style.color = theme === 'dark' ? '#ececec' : '#202020';
-      bubble.style.fontSize = '0.95rem';
-      bubble.style.cursor = 'pointer';
-      bubble.style.transition = 'background 0.2s';
-      bubble.style.fontFamily = 'system-ui,-apple-system,sans-serif';
-      bubble.style.border = `1px solid ${theme === 'dark' ? '#404040' : '#d9d9d9'}`;
-      bubble.textContent = question;
+      const chip = document.createElement('div');
+      chip.className = 'suggested-question-bubble';
+      chip.style.padding = '12px 16px';
+      chip.style.borderRadius = '14px';
+      chip.style.background = t().chipBg;
+      chip.style.color = t().fg;
+      chip.style.fontSize = '0.875rem';
+      chip.style.cursor = 'pointer';
+      chip.style.fontFamily = 'system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif';
+      chip.style.border = `1px solid ${t().chipBorder}`;
+      chip.style.lineHeight = '1.5';
+      chip.style.boxShadow = `0 1px 4px ${t().shadow}`;
+      chip.textContent = question;
 
-      bubble.onmouseover = () => {
-        bubble.style.background = theme === 'dark' ? '#3f3f3f' : '#e5e5e5';
+      chip.onmouseover = () => {
+        chip.style.background = t().chipHover;
+        chip.style.borderColor = '#6b8ef7';
+        chip.style.boxShadow = `0 2px 10px ${t().shadowHeavy}`;
       };
-      bubble.onmouseout = () => {
-        bubble.style.background = theme === 'dark' ? '#2f2f2f' : '#f0f0f0';
+      chip.onmouseout = () => {
+        chip.style.background = t().chipBg;
+        chip.style.borderColor = t().chipBorder;
+        chip.style.boxShadow = `0 1px 4px ${t().shadow}`;
       };
-      bubble.onclick = () => {
+      chip.onclick = () => {
         input.value = question;
         form.dispatchEvent(new Event('submit'));
-        // Remove suggested questions after clicking
         const suggestedContainer = document.getElementById('ai-suggested-questions');
         if (suggestedContainer) {
           suggestedContainer.remove();
         }
       };
 
-      container.appendChild(bubble);
+      container.appendChild(chip);
     });
 
     messagesDiv.appendChild(container);
@@ -404,31 +488,46 @@
   function appendMessage(role, text) {
     const msg = document.createElement('div');
     const isUser = role === 'user';
-    const textColor = theme === 'dark' ? '#ececec' : '#202020';
 
-    msg.style.marginBottom = '16px';
+    msg.style.marginBottom = '12px';
     msg.style.display = 'flex';
     msg.style.justifyContent = isUser ? 'flex-end' : 'flex-start';
 
-    const bubbleBg = theme === 'dark'
-      ? (isUser ? '#2f2f2f' : '#2f2f2f')
-      : (isUser ? '#f0f0f0' : '#f7f7f8');
-
-    msg.innerHTML = `
-      <div style="
-        max-width:85%;
-        padding:12px 16px;
-        border-radius:18px;
-        background:${bubbleBg};
-        color:${textColor};
-        font-size:0.95rem;
-        line-height:1.5;
-        word-break:break-word;
-        font-family:system-ui,-apple-system,sans-serif;
-      ">
-        ${text}
-      </div>
-    `;
+    if (isUser) {
+      msg.innerHTML = `
+        <div style="
+          max-width:82%;
+          padding:12px 18px;
+          border-radius:16px 16px 4px 16px;
+          background:${GRADIENT};
+          color:#ffffff;
+          font-size:0.9rem;
+          line-height:1.6;
+          word-break:break-word;
+          font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+          box-shadow:0 2px 10px rgba(79,110,243,0.2);
+        ">
+          ${text}
+        </div>
+      `;
+    } else {
+      msg.innerHTML = `
+        <div style="
+          max-width:82%;
+          padding:12px 18px;
+          border-radius:16px 16px 16px 4px;
+          background:${t().botBubble};
+          color:${t().botText};
+          font-size:0.9rem;
+          line-height:1.6;
+          word-break:break-word;
+          font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+          border:1px solid ${t().border};
+        ">
+          ${text}
+        </div>
+      `;
+    }
     messagesDiv.appendChild(msg);
     messagesDiv.scrollTop = messagesDiv.scrollHeight;
   }
@@ -437,26 +536,25 @@
   // Create typing indicator
   function createTypingIndicator() {
     const msg = document.createElement('div');
-    const bgColor = theme === 'dark' ? '#2f2f2f' : '#f7f7f8';
-    const textColor = theme === 'dark' ? '#ececec' : '#202020';
 
     msg.className = 'typing-indicator';
-    msg.style.marginBottom = '16px';
+    msg.style.marginBottom = '12px';
     msg.style.display = 'flex';
     msg.style.justifyContent = 'flex-start';
 
     msg.innerHTML = `
       <div style="
-        max-width:85%;
-        padding:12px 16px;
-        border-radius:18px;
-        background:${bgColor};
-        font-family:system-ui,-apple-system,sans-serif;
+        max-width:82%;
+        padding:14px 18px;
+        border-radius:16px 16px 16px 4px;
+        background:${t().botBubble};
+        border:1px solid ${t().border};
+        font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
       ">
-        <div class="typing-dots" style="display:flex;gap:4px;">
-          <span style="width:8px;height:8px;border-radius:50%;background:${textColor};opacity:0.6;animation:typingDot 1.4s infinite;"></span>
-          <span style="width:8px;height:8px;border-radius:50%;background:${textColor};opacity:0.6;animation:typingDot 1.4s infinite 0.2s;"></span>
-          <span style="width:8px;height:8px;border-radius:50%;background:${textColor};opacity:0.6;animation:typingDot 1.4s infinite 0.4s;"></span>
+        <div class="typing-dots" style="display:flex;gap:5px;align-items:center;">
+          <span style="width:7px;height:7px;border-radius:50%;background:#6b8ef7;opacity:0.7;animation:typingDot 1.4s infinite;"></span>
+          <span style="width:7px;height:7px;border-radius:50%;background:#8b5cf6;opacity:0.7;animation:typingDot 1.4s infinite 0.2s;"></span>
+          <span style="width:7px;height:7px;border-radius:50%;background:#a78bfa;opacity:0.7;animation:typingDot 1.4s infinite 0.4s;"></span>
         </div>
       </div>
     `;
@@ -467,8 +565,8 @@
   const typingStyle = document.createElement('style');
   typingStyle.innerHTML = `
     @keyframes typingDot {
-      0%, 60%, 100% { transform: translateY(0); opacity: 0.6; }
-      30% { transform: translateY(-10px); opacity: 1; }
+      0%, 60%, 100% { transform: translateY(0); opacity: 0.5; }
+      30% { transform: translateY(-6px); opacity: 1; }
     }
   `;
   document.head.appendChild(typingStyle);
@@ -516,7 +614,6 @@
 
   // Add functionality to edit and history buttons
   const editBtn = chatWindow.querySelector('#ai-chat-edit');
-  const historyBtn = chatWindow.querySelector('#ai-chat-history');
 
   editBtn.onclick = () => {
     // Clear current conversation
@@ -527,26 +624,17 @@
     input.focus();
   };
 
-  historyBtn.onclick = () => {
-    // This could be extended to show conversation history
-    // For now, we'll just scroll to top
-    messagesDiv.scrollTop = 0;
-  };
-
   // Handle clicks on "Chat with my AI" button from homepage
   document.addEventListener('click', (e) => {
-    // Check if the clicked element or its parent is a link with #open-chat or text "Chat with my AI"
     const target = e.target.closest('a');
     if (target) {
       const href = target.getAttribute('href');
       const text = target.textContent.trim();
 
-      // Check if href contains #open-chat or if text is "Chat with my AI"
       if ((href && href.includes('#open-chat')) || text === 'Chat with my AI') {
         e.preventDefault();
         chatWindow.style.display = 'flex';
         bubble.style.display = 'none';
-        // Remove pulse and tooltip after first interaction
         if (bubble.classList.contains('ai-chat-bubble-pulse')) {
           bubble.classList.remove('ai-chat-bubble-pulse');
           const tooltip = document.getElementById('ai-chat-bubble-tooltip');
