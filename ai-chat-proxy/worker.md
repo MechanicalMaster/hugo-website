@@ -161,6 +161,7 @@ async function handleChat(env, request) {
     const body = await request.json();
     const message = body.message;
     const history = body.history || [];
+    const sessionId = body.sessionId || null;
     const userIp = request.headers.get("CF-Connecting-IP") || "unknown";
 
     if (!message || typeof message !== "string" || message.length > 1000) {
@@ -236,6 +237,9 @@ async function handleChat(env, request) {
 
     console.log(`[${traceId}] Response generated (${groqLatency}ms, ${usage.total_tokens || 0} tokens)`);
 
+    const finishReason = data.choices?.[0]?.finish_reason || "stop";
+    const wasTruncated = finishReason === "length";
+
     const langfuseEvents = [
       {
         id: crypto.randomUUID(),
@@ -244,6 +248,7 @@ async function handleChat(env, request) {
         body: {
           id: traceId,
           name: "ronak-chatbot-conversation",
+          sessionId: sessionId,
           userId,
           metadata: {
             userIp: userIp.substring(0, 10) + "...",
@@ -257,18 +262,22 @@ async function handleChat(env, request) {
             completionTokens: usage.completion_tokens || 0,
             intentCategory: intent.category,
             isRecruiter: intent.isRecruiter,
-            knowledgeSource: "intent_scoped_kb"
+            knowledgeSource: "intent_scoped_kb",
+            promptVersion: "v2-intent-scoped",
+            truncated: wasTruncated,
+            maxTokensUsed: maxTokens
           },
           input: {
             message,
-            historyCount: history.length
+            history: trimmedHistory
           },
           output: {
             reply: aiReply,
             metadata: {
               intent: intent.category,
               latencyMs: totalLatency,
-              tokens: usage.total_tokens || 0
+              tokens: usage.total_tokens || 0,
+              truncated: wasTruncated
             }
           }
         }
@@ -312,8 +321,8 @@ async function handleChat(env, request) {
             maxTokens
           },
           prompt: [
-            { role: "system", content: systemPrompt.substring(0, 300) + "..." },
-            ...trimmedHistory.slice(-4).map((h) => ({ role: h.role, content: h.content.substring(0, 100) + "..." })),
+            { role: "system", content: systemPrompt },
+            ...trimmedHistory,
             { role: "user", content: message }
           ],
           completion: aiReply,
@@ -324,8 +333,10 @@ async function handleChat(env, request) {
           },
           metadata: {
             latencyMs: groqLatency,
-            finishReason: data.choices?.[0]?.finish_reason || "stop",
+            finishReason,
+            truncated: wasTruncated,
             intentCategory: intent.category,
+            promptVersion: "v2-intent-scoped",
             provider: "groq"
           }
         }

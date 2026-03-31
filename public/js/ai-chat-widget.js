@@ -400,6 +400,14 @@
     .dark #ai-chat-messages::-webkit-scrollbar-thumb:hover {
       background: #334155;
     }
+
+    /* Feedback buttons */
+    .ai-fb-btn {
+      transition: all 0.2s ease !important;
+    }
+    .ai-fb-btn:active:not(:disabled) {
+      transform: scale(0.9);
+    }
   `;
   document.head.appendChild(style);
 
@@ -425,6 +433,7 @@
   const form = chatWindow.querySelector('#ai-chat-form');
   const input = chatWindow.querySelector('#ai-chat-input');
   let history = [];
+  let sessionId = 'session-' + Date.now() + '-' + Math.random().toString(36).substring(2);
 
   // Suggested questions
   const suggestedQuestions = [
@@ -485,7 +494,7 @@
   // Show suggested questions on load
   showSuggestedQuestions();
 
-  function appendMessage(role, text) {
+  function appendMessage(role, text, traceId) {
     const msg = document.createElement('div');
     const isUser = role === 'user';
 
@@ -511,22 +520,77 @@
         </div>
       `;
     } else {
+      const bubbleId = 'fb-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6);
       msg.innerHTML = `
-        <div style="
-          max-width:82%;
-          padding:12px 18px;
-          border-radius:16px 16px 16px 4px;
-          background:${t().botBubble};
-          color:${t().botText};
-          font-size:0.9rem;
-          line-height:1.6;
-          word-break:break-word;
-          font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
-          border:1px solid ${t().border};
-        ">
-          ${text}
+        <div style="max-width:82%;">
+          <div style="
+            padding:12px 18px;
+            border-radius:16px 16px 16px 4px;
+            background:${t().botBubble};
+            color:${t().botText};
+            font-size:0.9rem;
+            line-height:1.6;
+            word-break:break-word;
+            font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+            border:1px solid ${t().border};
+          ">
+            ${text}
+          </div>
+          ${traceId ? `
+          <div id="${bubbleId}" style="display:flex;align-items:center;gap:2px;margin-top:4px;padding-left:4px;">
+            <button class="ai-fb-btn" data-trace="${traceId}" data-score="1" style="
+              background:none;border:none;cursor:pointer;padding:4px 6px;border-radius:6px;
+              color:${t().muted};font-size:14px;line-height:1;transition:all 0.2s ease;display:flex;align-items:center;
+            " onmouseover="this.style.background='${t().chipHover}';this.style.color='#34d399'" onmouseout="if(!this.dataset.selected){this.style.background='none';this.style.color='${t().muted}'}">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 10v12"/><path d="M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2h0a3.13 3.13 0 0 1 3 3.88Z"/></svg>
+            </button>
+            <button class="ai-fb-btn" data-trace="${traceId}" data-score="0" style="
+              background:none;border:none;cursor:pointer;padding:4px 6px;border-radius:6px;
+              color:${t().muted};font-size:14px;line-height:1;transition:all 0.2s ease;display:flex;align-items:center;
+            " onmouseover="this.style.background='${t().chipHover}';this.style.color='#f87171'" onmouseout="if(!this.dataset.selected){this.style.background='none';this.style.color='${t().muted}'}">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 14V2"/><path d="M9 18.12 10 14H4.17a2 2 0 0 1-1.92-2.56l2.33-8A2 2 0 0 1 6.5 2H20a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-2.76a2 2 0 0 0-1.79 1.11L12 22h0a3.13 3.13 0 0 1-3-3.88Z"/></svg>
+            </button>
+          </div>
+          ` : ''}
         </div>
       `;
+
+      // Attach feedback handlers
+      if (traceId) {
+        const container = msg.querySelector('#' + bubbleId);
+        container.querySelectorAll('.ai-fb-btn').forEach(btn => {
+          btn.onclick = async () => {
+            const score = parseInt(btn.dataset.score);
+            // Mark selected, disable both
+            container.querySelectorAll('.ai-fb-btn').forEach(b => {
+              b.disabled = true;
+              b.style.cursor = 'default';
+              b.onmouseover = null;
+              b.onmouseout = null;
+              if (b === btn) {
+                b.dataset.selected = '1';
+                b.style.color = score === 1 ? '#34d399' : '#f87171';
+                b.style.background = score === 1 ? 'rgba(52,211,153,0.1)' : 'rgba(248,113,113,0.1)';
+              } else {
+                b.style.opacity = '0.3';
+                b.style.color = t().muted;
+              }
+            });
+            // Send feedback
+            try {
+              await fetch('/api/chat/feedback', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  traceId: btn.dataset.trace,
+                  score,
+                  category: 'inline-thumbs'
+                })
+              });
+            } catch (e) { /* silent */ }
+          };
+        });
+      }
     }
     messagesDiv.appendChild(msg);
     messagesDiv.scrollTop = messagesDiv.scrollHeight;
@@ -594,12 +658,12 @@
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: userMsg, history: history.slice(-20) })
+        body: JSON.stringify({ message: userMsg, history: history.slice(-20), sessionId })
       });
       const data = await res.json();
       typingIndicator.remove();
       if (data.reply) {
-        appendMessage('ai', data.reply);
+        appendMessage('ai', data.reply, data.traceId || null);
         history.push({ role: 'assistant', content: data.reply });
       } else if (data.error) {
         appendMessage('ai', "Error: " + (typeof data.error === "string" ? data.error : JSON.stringify(data.error)));
@@ -619,6 +683,7 @@
     // Clear current conversation
     messagesDiv.innerHTML = '';
     history = [];
+    sessionId = 'session-' + Date.now() + '-' + Math.random().toString(36).substring(2);
     // Show suggested questions again
     showSuggestedQuestions();
     input.focus();
