@@ -1,0 +1,316 @@
+[
+    {
+        "id": "atom_1",
+        "title": "Settlement Table Partitioning",
+        "summary": "Eliminated transaction timeouts by redesigning a 45Cr row database using partitioning",
+        "tags": [
+            "scaling",
+            "system design",
+            "backend"
+        ],
+        "use_cases": [
+            "technical problem",
+            "scaling challenge"
+        ],
+        "content": "As the UPI platform scaled to ~30L merchants and ~10 lakh transactions/day, the settlement table grew to ~45 crore rows. During peak loads, table locks caused transaction timeouts. I audited 30+ queries and implemented date-based partitioning with a 3-phase migration and 10-minute downtime. I rejected hash partitioning due to complexity and accepted a 2-month dev freeze. Post-migration, failures were eliminated and partner confidence was restored."
+    },
+    {
+        "id": "atom_2",
+        "title": "Risk Hold Policy Improvement",
+        "summary": "Improved merchant experience and ratings by redesigning risk hold communication and policy",
+        "tags": [
+            "product",
+            "stakeholder",
+            "ux"
+        ],
+        "use_cases": [
+            "improving UX",
+            "stakeholder conflict"
+        ],
+        "content": "Merchants complained about a 30-day risk hold policy, leading to ~3.5 app rating. I built real-time Kafka-based notifications and proposed a policy split: 14 days for Yes Bank merchants and 30 days for partner merchants. Despite compliance resistance, I justified segmentation based on risk profiles. Ratings improved to ~4.2 and support tickets reduced significantly."
+    },
+    {
+        "id": "atom_3",
+        "title": "iOS App Launch",
+        "summary": "Shipped a stalled product by aggressively reducing scope and fixing delivery blockers",
+        "tags": [
+            "execution",
+            "prioritization"
+        ],
+        "use_cases": [
+            "shipping under constraints"
+        ],
+        "content": "The iOS app had been stalled for ~1 year. I cut scope (removed dark mode, multilingual), fixed CI/CD issues, and built a demo mode for Apple approval. Despite multiple rejections, we launched in ~4 months."
+    },
+    {
+        "id": "atom_4",
+        "title": "Bureau Integration Decision",
+        "summary": "Replaced failing middleware with custom CIBIL integration to unblock loan processing",
+        "tags": [
+            "technical",
+            "decision-making"
+        ],
+        "use_cases": [
+            "technical tradeoff"
+        ],
+        "content": "The existing CIBIL integration relied on outdated middleware with no support and unknown error codes. I proposed a ₹50L custom integration after showing business losses from failures. It resolved a major bottleneck and became a template across the bank."
+    },
+    {
+        "id": "atom_5",
+        "title": "BRE Workflow Rebuild",
+        "summary": "Reduced underwriting workflow complexity from 40 to 22 forms to improve TAT and FTR",
+        "tags": [
+            "product design",
+            "systems"
+        ],
+        "use_cases": [
+            "process optimization"
+        ],
+        "content": "The underwriting workflow had ~40 forms. After deep domain immersion, I reduced it to 22 by removing duplication, shifting responsibilities, and redesigning flows. TAT reduced from 15 to 7 days and FTR improved from ~10% to ~40%."
+    },
+    {
+        "id": "atom_6",
+        "title": "LMS Migration",
+        "summary": "Executed phased migration of 5000+ dealers and 120 anchors without disruption",
+        "tags": [
+            "execution",
+            "program management"
+        ],
+        "use_cases": [
+            "large scale rollout"
+        ],
+        "content": "Migrated 5000+ dealers and 120 anchors using a phased approach to avoid financial mismatches. Managed APIs, communication, and training. Migration completed with minimal escalations."
+    },
+    {
+        "id": "atom_7",
+        "title": "Stakeholder Alignment",
+        "summary": "Unblocked stalled project by aligning credit leadership without formal authority",
+        "tags": [
+            "leadership",
+            "influence"
+        ],
+        "use_cases": [
+            "stakeholder conflict"
+        ],
+        "content": "The credit team lacked ownership. I escalated to the National Credit Head and aligned stakeholders, driving the project forward despite no direct authority."
+    },
+    {
+        "id": "atom_8",
+        "title": "Training & Adoption",
+        "summary": "Improved adoption across 2000 RMs through continuous training and engagement",
+        "tags": [
+            "change management"
+        ],
+        "use_cases": [
+            "driving adoption"
+        ],
+        "content": "RMs had low usage frequency and poor recall. I conducted 100+ hours of training, daily support calls, and created SOPs and videos. This improved adoption significantly."
+    },
+    {
+        "id": "atom_9",
+        "title": "AML Flow Redesign",
+        "summary": "Proposed mid-window AML model to solve real-time vs batch tradeoff",
+        "tags": [
+            "product thinking"
+        ],
+        "use_cases": [
+            "ambiguous problem"
+        ],
+        "content": "Real-time AML caused timeouts while T+1 created reconciliation issues. I proposed a 30–60 min AML window to balance compliance and system performance. Proposal under discussion."
+    },
+    {
+        "id": "atom_10",
+        "title": "Vendor Management",
+        "summary": "Maintained delivery despite vendor deprioritization post billing",
+        "tags": [
+            "vendor"
+        ],
+        "use_cases": [
+            "vendor management"
+        ],
+        "content": "Vendor responsiveness dropped after billing began. I used escalation channels and strong relationships while front-loading execution earlier."
+    },
+    {
+        "id": "atom_11",
+        "title": "UAT Breakdown Recovery",
+        "summary": "Recovered failing UAT by imposing structure and ownership",
+        "tags": [
+            "failure",
+            "execution"
+        ],
+        "use_cases": [
+            "failure recovery"
+        ],
+        "content": "UAT failed due to lack of ownership. I trained teams, defined testing standards, and acted as SPOC. This enabled successful completion."
+    },
+    {
+        "id": "atom_12",
+        "title": "Missed Scenario Failure",
+        "summary": "Identified critical product gaps leading to full workflow rebuild",
+        "tags": [
+            "failure",
+            "product"
+        ],
+        "use_cases": [
+            "learning from failure"
+        ],
+        "content": "CUG revealed failures due to missed real-world scenarios. I identified gaps and triggered a full workflow rebuild."
+    },
+    {
+        "id": "atom_13",
+        "title": "Underwriting Deep Dive",
+        "summary": "Built deep domain expertise to redesign product accurately",
+        "tags": [
+            "domain",
+            "user empathy"
+        ],
+        "use_cases": [
+            "understanding users"
+        ],
+        "content": "I embedded with underwriting teams to understand MSME credit decisions. This informed the entire product redesign."
+    },
+    {
+        "id": "atom_14",
+        "title": "GST-Bank Validation Insight",
+        "summary": "Introduced cross-data validation to improve underwriting accuracy",
+        "tags": [
+            "analytics"
+        ],
+        "use_cases": [
+            "data-driven decisions"
+        ],
+        "content": "Introduced heuristic that ~80% GST turnover should reflect in bank statements, improving fraud detection and accuracy."
+    },
+    {
+        "id": "atom_15",
+        "title": "FLDG Compliance Fix",
+        "summary": "Closed compliance gap by enforcing strict credit thresholds",
+        "tags": [
+            "risk"
+        ],
+        "use_cases": [
+            "ethical decision"
+        ],
+        "content": "CMR 9–10 cases were being approved under FLDG. I enforced thresholds, rejecting ~3–4% risky cases and improving compliance."
+    },
+    {
+        "id": "atom_16",
+        "title": "Drop-off Funnel Creation",
+        "summary": "Built analytics to systematically reduce TAT",
+        "tags": [
+            "metrics"
+        ],
+        "use_cases": [
+            "improving metrics"
+        ],
+        "content": "Built stage-wise funnel tracking to identify bottlenecks and reduce TAT from 12 to 7 days."
+    },
+    {
+        "id": "atom_17",
+        "title": "RM to CPA Shift",
+        "summary": "Improved accuracy by shifting tasks to specialized users",
+        "tags": [
+            "process"
+        ],
+        "use_cases": [
+            "efficiency improvement"
+        ],
+        "content": "Shifted responsibilities from RMs to CPAs, improving FTR rates and reducing errors."
+    },
+    {
+        "id": "atom_18",
+        "title": "Anchor Rule Standardization",
+        "summary": "Balanced standardization and flexibility in underwriting rules",
+        "tags": [
+            "system design"
+        ],
+        "use_cases": [
+            "standardization"
+        ],
+        "content": "Standardized 6 variables and kept 4 configurable across anchors to balance consistency and flexibility."
+    },
+    {
+        "id": "atom_19",
+        "title": "100-Case Validation",
+        "summary": "Ensured system accuracy before launch using empirical validation",
+        "tags": [
+            "quality"
+        ],
+        "use_cases": [
+            "quality assurance"
+        ],
+        "content": "Ran 100 cases comparing digital vs Excel outputs to ensure alignment before go-live."
+    },
+    {
+        "id": "atom_20",
+        "title": "NPA Architecture Conflict",
+        "summary": "Resolved architecture conflict with configurable grace period system",
+        "tags": [
+            "stakeholder"
+        ],
+        "use_cases": [
+            "conflict resolution"
+        ],
+        "content": "New LMS blocked all limits on NPA. I introduced configurable grace periods to balance risk and business needs."
+    },
+    {
+        "id": "atom_21",
+        "title": "Dealer Communication Ownership",
+        "summary": "Took ownership of communication to enable smooth migration",
+        "tags": [
+            "leadership"
+        ],
+        "use_cases": [
+            "ownership"
+        ],
+        "content": "No team owned dealer communication. I created documentation and videos, enabling smooth migration."
+    },
+    {
+        "id": "atom_22",
+        "title": "Vendor Incentive Misalignment",
+        "summary": "Managed vendor slowdown through escalation and relationship management",
+        "tags": [
+            "vendor"
+        ],
+        "use_cases": [
+            "vendor management"
+        ],
+        "content": "Handled post-billing vendor deprioritization through escalation and alignment."
+    },
+    {
+        "id": "atom_23",
+        "title": "Executive Defense",
+        "summary": "Defended complex product decisions under leadership pressure",
+        "tags": [
+            "communication"
+        ],
+        "use_cases": [
+            "handling pressure"
+        ],
+        "content": "Explained workflow decisions in a high-pressure meeting, securing leadership buy-in."
+    },
+    {
+        "id": "atom_24",
+        "title": "API Lifecycle Management",
+        "summary": "Managed large-scale partner ecosystem with structured API communication",
+        "tags": [
+            "platform"
+        ],
+        "use_cases": [
+            "platform management"
+        ],
+        "content": "Managed ~600 API partners with structured rollout for breaking and non-breaking changes."
+    },
+    {
+        "id": "atom_25",
+        "title": "Saying No to Partner",
+        "summary": "Protected system performance by refusing non-scalable partner request",
+        "tags": [
+            "prioritization"
+        ],
+        "use_cases": [
+            "saying no"
+        ],
+        "content": "Rejected a 90-day API request due to performance impact, offering alternatives instead."
+    }
+]

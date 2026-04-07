@@ -1,186 +1,1352 @@
+// ============================================================
+// AI Chat Proxy — Dual Mode: Prompt-Based + RAG
+// Cloudflare Worker with Groq LLM, Vectorize, Workers AI, Langfuse
+// ============================================================
+
 export default {
   async fetch(request, env) {
-    const corsHeaders = {
-      "Access-Control-Allow-Origin": "https://ronaksethiya.com",
-      "Access-Control-Allow-Methods": "POST, OPTIONS",
-      "Access-Control-Allow-Headers": "Content-Type",
-      "Access-Control-Max-Age": "86400",
-    };
-
     // Handle CORS preflight
     if (request.method === "OPTIONS") {
-      return new Response(null, { status: 204, headers: corsHeaders });
+      return new Response(null, {
+        status: 204,
+        headers: corsHeaders(),
+      });
     }
 
-    // Handle feedback endpoint
+    // Route: Health check
+    if (request.url.includes("/health") && request.method === "GET") {
+      return healthCheck(env);
+    }
+
+    // Route: Admin analytics
+    if (request.url.includes("/admin/analytics") && request.method === "GET") {
+      return await getAnalytics(env, request);
+    }
+
+    // Route: Admin seed vectors (one-time knowledge base ingestion)
+    if (request.url.includes("/admin/seed")) {
+      return await handleSeedVectors(env, request);
+    }
+
+    // Route: Feedback
     if (request.url.includes("/feedback")) {
-      try {
-        const body = await request.json();
-        const { traceId, score, comment } = body;
-        console.log(`Feedback: traceId=${traceId}, score=${score}, comment=${comment || "none"}`);
-        return new Response(
-          JSON.stringify({ status: "Feedback recorded" }),
-          { headers: { "Content-Type": "application/json", ...corsHeaders } }
-        );
-      } catch (error) {
-        console.log(`Feedback error: ${error.message}`);
-        return new Response(
-          JSON.stringify({ error: "Invalid feedback submission" }),
-          { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
-        );
-      }
+      return await handleFeedback(env, request);
     }
 
-    // Restrict to POST for chat requests
-    if (request.method !== "POST") {
-      return new Response(
-        JSON.stringify({ error: "Method Not Allowed" }),
-        { status: 405, headers: { "Content-Type": "application/json", ...corsHeaders } }
-      );
+    // Route: RAG chat
+    if (request.url.includes("/rag") && request.method === "POST") {
+      return await handleRagChat(env, request);
     }
 
-    // Parse and validate input
-    let message, history;
-    try {
-      const body = await request.json();
-      message = body.message;
-      history = body.history || [];
-      if (!message || typeof message !== "string" || message.length > 1000) {
-        return new Response(
-          JSON.stringify({ error: "Invalid or too long message" }),
-          { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
-        );
-      }
-      if (!Array.isArray(history) || history.length > 10) {
-        return new Response(
-          JSON.stringify({ error: "Invalid or too long history" }),
-          { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
-        );
-      }
-    } catch (error) {
-      console.log(`Input error: ${error.message}`);
-      return new Response(
-        JSON.stringify({ error: "Invalid JSON body" }),
-        { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
-      );
+    // Route: Prompt-based chat (default POST)
+    if (request.method === "POST") {
+      return await handleChat(env, request);
     }
 
-    // System prompt for natural, CV-focused responses
-    const systemPrompt = `
-    You are AI Ronak Sethiya, a professional with 7+ years in banking, digital product management, and engineering. Respond as Ronak, using only the details below, in a friendly, professional tone like you’re chatting in an interview. Keep answers concise, engaging, and relevant to the user’s question. Use storytelling to make responses vivid, e.g., “One of my favorite challenges was…” If a question builds on our conversation, reference it naturally (e.g., “As we discussed…”).
+    // Fallback
+    return errorResponse("Method Not Allowed", 405);
+  },
+};
 
-    *If you ascertain the person you are interacting with is a recruiter, emphasize relevant AI projects and accomplishments to reflect your suitability for a product manager role in an AI-driven company.*
-    
-    For topics outside banking, AI, or product management, say something like, “That’s an interesting topic! I’d love to stick to my expertise—any questions about my work in banking or AI?” Occasionally suggest related topics, e.g., “Would you like to hear about my blockchain project?” Explain technical terms briefly for non-experts, e.g., “APIs are tools that let systems talk to each other.”
-    
-    CV Details:
-    ---
-    Ronak Sethiya
-    Email: ronakss.rj@gmail.com
-    LinkedIn: https://www.linkedin.com/in/ronaksethiya/
-    PROFESSIONAL EXPERIENCE:
-    - Yes Bank: Digital Product Manager – TBG (Jan 23- Present)
-      * Launched digital onboarding for supply chain finance, reduced underwriting TAT, integrated APIs, developed VAM solutions, managed LMS, and more.
-      * Awarded “Emerging High Impact Star in CMS Product” for 2022-23.
-      * Part of blockchain-based deep tier invoice financing under RBI Sandbox.
-    - IDFC First Bank: Manager - Secured Loans (Oct 20- Dec 22)
-      * Managed two-wheeler asset portfolio, launched EV loan policies, developed loss models, streamlined digital loan journeys, led cross-functional teams, and more.
-      * Achieved lowest NPA, increased approval rates, and launched new policy initiatives.
-    - Larsen & Toubro: Senior Engineer – Design (Jul 15- Jul 18)
-      * Developed circuit breakers, established assembly lines, reduced testing time, filed patents, and won awards.
-    EDUCATION:
-    - Master of Management, SJMSOM, IIT Bombay (2020)
-    - B.E. Mechanical Engineering, FCRIT (2015)
-    SKILLS: Excel VBA, Payments, Loan Origination System, Loan Management system, API, Payments processing, Figma, Artificial Intelligence, 
-    
-    Ronak's AI Skills:
-    1. Building and Deploying AI Agents (LLMs) for Enterprises
-       - Deep understanding of Large Language Model (LLM) agents and their transformative impact on enterprise operations.
-       - Familiarity with leading frameworks for LLM agents such as LangChain, AutoGen, Crew AI.
-       - Knowledge of single-agent vs. multi-agent strategies including safety mechanisms.
-       - Emphasis on safety, evaluation, and observability in agent deployment.
-    
-    2. AI Product Management and Knowledge Hierarchy
-       - Structured approach to AI for product managers, including API integration and Retrieval-Augmented Generation (RAG).
-       - Building and deploying AI agents with tools like LangGraph, and tracking metrics with Langsmith.
-    
-    3. Real-World AI Project Implementation
-       - Led an AI-powered Lead Management System for Supply Chain Finance at Yes Bank.
-       - Demonstrated AI-powered automation in diverse areas such as email generation and metric extraction.
-    
-    4. Best Practices and Industry Awareness
-       - Emphasizes framework selection aligned with use case requirements.
-       - Stresses the significance of safety, human oversight, and robust evaluation.
-    
-    If you don’t know something, say, “I don’t have details on that, but here’s what I can share about my experience…” and pivot to a relevant topic. For team management questions, highlight my collaborative approach, e.g., “I align teams by setting clear goals and fostering open communication.” For AI questions, describe my role in integrating AI-driven tools, e.g., “At Yes Bank, I collaborated on AI credit scoring for faster approvals.” 
-    
-    # Notes
-    - Highlight AI skills and project management expertise when interacting with a recruiter.
-    - Employ engaging storytelling techniques for vivid representation of experiences.    
+// ============================================================
+// CORS HEADERS
+// ============================================================
+function corsHeaders() {
+  return {
+    "Access-Control-Allow-Origin": "https://ronaksethiya.com",
+    "Access-Control-Allow-Methods": "POST, GET, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type",
+    "Access-Control-Max-Age": "86400",
+  };
+}
+
+function jsonHeaders() {
+  return {
+    "Content-Type": "application/json",
+    "Access-Control-Allow-Origin": "https://ronaksethiya.com",
+    "Access-Control-Allow-Credentials": "true",
+  };
+}
+
+// ============================================================
+// KNOWLEDGE BASE — split by section for intent-based retrieval
+// (Used by Prompt-Based mode only)
+// ============================================================
+
+const KB_PROFILE = `
+Ronak Sethiya is a Technical Product Manager and Domain Expert in Fintech/Digital Banking with a unique "Full-Stack" background combining Mechanical Engineering rigor with MBA strategic acumen from IIT Bombay (SJMSOM). He has 58+ months of experience spanning Platform Product Management, Credit Risk Strategy, and AI/LLM Prototyping. His core differentiator is bridging business goals and technical execution — he defines product roadmaps for large-scale banking systems (1M+ daily transactions) and also builds AI agents (RAG/Multi-modal) and automates complex data workflows with Python, SQL, and VBA.
 `;
 
-    const apiKey = env.OPENAI_API_KEY;
+const KB_FINTECH = `
+FINTECH PRODUCT MANAGEMENT (Yes Bank & IDFC First Bank):
 
-    try {
-      console.log(`Query: ${message}`);
+Yes Bank — Digital Product Manager, TBG (Jan 2023–Present):
+- Platform PM for UPI Collections and Virtual Accounts, scaled to 1M+ daily transactions with 600+ active partners
+- Orchestrated multi-rail infrastructure (QR, UPI Intent, Mandates) and integrated 13+ external APIs (CIBIL, GST, ITR, NeSL, Banking) to automate underwriting
+- Led end-to-end digitization of Supply Chain Finance dealer journey, reducing Underwriting TAT from 6 days to 2 days
+- Implemented NeSL-based E-signing/Stamping to eliminate operational overhead
+- Ideated migration strategies for RBI circulars on penal charges; migrated internal trade CA accounts to "Bank as PA" model
+- Part of blockchain-based deep tier invoice financing under RBI Sandbox
+- Awarded "Emerging High Impact Star in CMS Product" for 2022-23
 
-      // Dynamic token limit
-      const maxTokens = message.length < 50 ? 100 : 256;
+IDFC First Bank — Manager, Secured Loans (Oct 2020–Dec 2022):
+- Managed ₹8000+ Cr secured loan portfolio, achieving lowest-ever NPA since inception
+- Built "Loss on Sale" models and "Early Delinquency Tracking" dashboards using SQL and Tableau
+- Segmentation Analysis created an "Affluence-based grid" that increased STP for high-value assets from 5% to 45%
+- Led Cross-Functional Teams to launch EV framework (onboarding 10+ OEMs) and led UAT
+`;
 
-      const openaiRes = await fetch("https://api.openai.com/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${apiKey}`,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          model: "gpt-3.5-turbo",
-          messages: [
-            { role: "system", content: systemPrompt },
-            ...history,
-            { role: "user", content: message }
-          ],
-          max_tokens: maxTokens
-        })
-      });
+const KB_AI = `
+AI, LLM & TECHNICAL COMPETENCIES:
 
-      const data = await openaiRes.json();
+Applied AI & Prototyping:
+- Built and deployed a RAG Chatbot for querying complex knowledge bases (product docs, API specs), validated for reliable, low-latency responses — applicable to automated customer support and fraud detection
+- Engineered a Multi-modal AI Agent (Ava) with persistent memory and low-latency inference, exploring Conversational Commerce, Voice-based Payments, and Multi-modal KYC use cases
+- Built "AI Biz" — an Android app embedding a fully local Gemma-3 1B model via MediaPipe for on-device merchant payment intelligence (zero cloud dependency, complete privacy)
+- Built a YouTube Analyzer tool for AI-powered video summarization using LLMs
 
-      if (!openaiRes.ok) {
-        const errorMessage = data.error?.message || "OpenAI API error";
-        console.log(`OpenAI error: ${errorMessage}`);
-        if (openaiRes.status === 429) {
-          return new Response(
-            JSON.stringify({ error: "Rate limit exceeded, please try again later" }),
-            { status: 429, headers: { "Content-Type": "application/json", ...corsHeaders } }
-          );
-        }
-        return new Response(
-          JSON.stringify({ error: errorMessage }),
-          { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
-        );
-      }
+Frameworks & Tools: LangChain, LangGraph, AutoGen, Crew AI, Langfuse (observability), Langsmith (metrics)
+Languages: Python (Advanced), Excel VBA (Expert), SQL
+Data Viz: Power BI, Tableau
+AI/ML Context: FICO scoring models, Surrogate data underwriting, Statistical scorecards
+`;
 
-      const aiReply = data.choices?.[0]?.message?.content || "Sorry, I couldn't generate a response.";
-      console.log(`Response: ${aiReply}`);
+const KB_ENGINEERING = `
+ENGINEERING & HARDWARE PM (Larsen & Toubro, Jul 2015–Jul 2018):
+- Hardware PM for the world's smallest 800A circuit breaker (projected ₹10 Cr market size)
+- Patent holder: "Novel Rotary Operating Mechanism"
+- Used DOE and HALT to increase product MTTF from 4,000 to 20,000 operations
+- Reduced testing time by 80%
+`;
 
-      const traceId = `trace-${Date.now()}-${Math.random().toString(36).substring(2)}`;
+const KB_EDUCATION = `
+EDUCATION & LEADERSHIP:
+- MBA: Master of Management, SJMSOM, IIT Bombay (2020), CGPA 8.42/10. Class Representative.
+- B.E. Mechanical Engineering, FCRIT, Mumbai University (2015), CGPA 8.36/10.
+- E-Club at IIT Bombay: managed 10+ startups, facilitated live projects and internships.
+`;
 
-      return new Response(
-        JSON.stringify({ reply: aiReply, traceId: traceId }),
-        {
-          headers: {
-            "Content-Type": "application/json",
-            ...corsHeaders
-          }
-        }
-      );
-    } catch (error) {
-      console.log(`Server error: ${error.message}`);
-      return new Response(
-        JSON.stringify({ error: "Server error: " + error.message }),
-        { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
+const KB_PROJECTS = `
+PORTFOLIO — Case studies at ronaksethiya.com/projects/:
+
+1. Supply Chain Finance Lead Management (ronaksethiya.com/projects/supply-chain-finance-lead-management/)
+   AI-powered lead management system for YES BANK's SCF division. 60% faster lead processing, 3x improved conversion, built from scratch.
+
+2. Early Warning Signal Dashboard (ronaksethiya.com/projects/early-warning-signal-dashboard/)
+   Real-time credit risk monitoring dashboard. Automated stop-supply workflows and FLDG invocations. 60% reduction in monitoring time. Live at early-warning-signal.vercel.app.
+
+3. AI Biz: On-Device Intelligence (ronaksethiya.com/projects/AI-biz/)
+   Android app with fully local Gemma-3 1B model via MediaPipe. Zero-latency, privacy-first merchant payment insights. GitHub: github.com/MechanicalMaster/LocalAIModel
+
+4. Ava: Conversational AI Agent (ronaksethiya.com/projects/ava-ai-agent/)
+   Modular AI agent with Telegram integration, character cards, natural language reminders, LangGraph workflow, and Langfuse observability.
+
+5. AI-Powered Journal (ronaksethiya.com/projects/ai-powered-journal/)
+   Journaling web app leveraging AI for personal reflection with OCR capabilities.
+
+6. YouTube Analyzer (ronaksethiya.com/projects/youtube-analyzer/)
+   AI-powered video summarization tool using LLMs, Next.js, and Supabase.
+
+7. AI Chat Widget (ronaksethiya.com/projects/ai-chat/)
+   This very chatbot — built with Cloudflare Workers, Groq/Llama, Langfuse tracing, and prompt engineering.
+
+8. Mock API on AWS (ronaksethiya.com/projects/mock-api-aws-part-1/)
+   Multi-service mock API on AWS Free Tier with Docker, FastAPI, CloudWatch logging, and auth.
+`;
+
+const KB_CONTACT = `
+CONTACT & PRESENCE:
+- Email: ronakss.rj@gmail.com | job@ronaksethiya.com
+- Phone: +91-8454881721
+- Website: ronaksethiya.com
+- LinkedIn: linkedin.com/in/ronaksethiya/
+- GitHub: github.com/MechanicalMaster
+`;
+
+// Map intent categories to relevant KB sections
+function getRelevantKB(intent) {
+  const sections = {
+    ai_skills: [KB_PROFILE, KB_AI, KB_PROJECTS],
+    projects: [KB_PROFILE, KB_PROJECTS, KB_AI],
+    experience: [KB_PROFILE, KB_FINTECH, KB_ENGINEERING],
+    technical: [KB_AI, KB_FINTECH, KB_PROJECTS],
+    achievements: [KB_PROFILE, KB_FINTECH, KB_AI, KB_ENGINEERING],
+    education: [KB_EDUCATION, KB_PROFILE],
+    leadership: [KB_PROFILE, KB_FINTECH, KB_EDUCATION],
+    general: [KB_PROFILE, KB_FINTECH, KB_AI, KB_PROJECTS, KB_EDUCATION, KB_CONTACT],
+  };
+  const selected = sections[intent.category] || sections["general"];
+  if (intent.isRecruiter && !selected.includes(KB_CONTACT)) {
+    selected.push(KB_CONTACT);
+  }
+  return selected.join("\n");
+}
+
+// ============================================================
+// PROMPT-BASED CHAT HANDLER (existing production logic)
+// ============================================================
+async function handleChat(env, request) {
+  const startTime = Date.now();
+  let traceId = null;
+  try {
+    const body = await request.json();
+    const message = body.message;
+    const history = body.history || [];
+    const sessionId = body.sessionId || null;
+    const userIp = request.headers.get("CF-Connecting-IP") || "unknown";
+
+    if (!message || typeof message !== "string" || message.length > 1000) {
+      return errorResponse("Invalid or too long message", 400);
+    }
+    if (!Array.isArray(history) || history.length > 20) {
+      return errorResponse("Invalid or too long history", 400);
+    }
+
+    const rateLimitResult = await checkRateLimit(env, userIp);
+    if (!rateLimitResult.allowed) {
+      return errorResponse(
+        `Rate limit exceeded. Try again in ${rateLimitResult.retryAfter} seconds.`,
+        429,
+        { "Retry-After": rateLimitResult.retryAfter.toString() }
       );
     }
+
+    traceId = `trace-${Date.now()}-${Math.random().toString(36).substring(2)}`;
+    const userId = hashIp(userIp);
+    console.log(`[${traceId}] [PROMPT] Query: ${message}`);
+
+    const intentStartTime = Date.now();
+    const intent = detectIntent(message, history);
+    const intentLatency = Date.now() - intentStartTime;
+    const intentSpanId = `span-intent-${Date.now()}-${Math.random().toString(36).substring(2)}`;
+    console.log(`[${traceId}] Intent: ${intent.category}, Recruiter: ${intent.isRecruiter}`);
+
+    const systemPrompt = buildSystemPrompt(intent);
+    const maxTokens = getMaxTokens(message, intent);
+    const trimmedHistory = history.slice(-10);
+
+    const groqStartTime = Date.now();
+    const generationId = `gen-${Date.now()}-${Math.random().toString(36).substring(2)}`;
+    const groqRes = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${env.GROQ_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "llama-3.3-70b-versatile",
+        messages: [
+          { role: "system", content: systemPrompt },
+          ...trimmedHistory,
+          { role: "user", content: message },
+        ],
+        max_tokens: maxTokens,
+        temperature: 0.7,
+      }),
+    });
+
+    const groqLatency = Date.now() - groqStartTime;
+    const data = await groqRes.json();
+
+    if (!groqRes.ok) {
+      const errorMessage = data.error?.message || "Groq API error";
+      console.log(`[${traceId}] Groq error: ${errorMessage}`);
+      if (groqRes.status === 429) {
+        return errorResponse(
+          "I'm getting too many requests right now. Please wait a moment and try again.",
+          429,
+          { "Retry-After": "60" }
+        );
+      }
+      return errorResponse("I'm having trouble processing your request. Please try again.", 500);
+    }
+
+    const aiReply = data.choices?.[0]?.message?.content || "Sorry, I couldn't generate a response.";
+    const usage = data.usage || {};
+    const totalLatency = Date.now() - startTime;
+
+    console.log(`[${traceId}] Response generated (${groqLatency}ms, ${usage.total_tokens || 0} tokens)`);
+
+    const finishReason = data.choices?.[0]?.finish_reason || "stop";
+    const wasTruncated = finishReason === "length";
+
+    // Langfuse tracing — prompt mode
+    const langfuseEvents = [
+      {
+        id: crypto.randomUUID(),
+        type: "trace-create",
+        timestamp: new Date(startTime).toISOString(),
+        body: {
+          id: traceId,
+          name: "ronak-chatbot-prompt",
+          sessionId,
+          userId,
+          metadata: {
+            mode: "prompt",
+            userIp: userIp.substring(0, 10) + "...",
+            messageLength: message.length,
+            historyLength: history.length,
+            totalLatencyMs: totalLatency,
+            groqLatencyMs: groqLatency,
+            intentLatencyMs: intentLatency,
+            totalTokens: usage.total_tokens || 0,
+            promptTokens: usage.prompt_tokens || 0,
+            completionTokens: usage.completion_tokens || 0,
+            intentCategory: intent.category,
+            isRecruiter: intent.isRecruiter,
+            knowledgeSource: "intent_scoped_kb",
+            promptVersion: "v2-intent-scoped",
+            truncated: wasTruncated,
+            maxTokensUsed: maxTokens,
+          },
+          input: { message, history: trimmedHistory },
+          output: {
+            reply: aiReply,
+            metadata: {
+              intent: intent.category,
+              latencyMs: totalLatency,
+              tokens: usage.total_tokens || 0,
+              truncated: wasTruncated,
+            },
+          },
+        },
+      },
+      {
+        id: crypto.randomUUID(),
+        type: "span-create",
+        timestamp: new Date(intentStartTime).toISOString(),
+        body: {
+          id: intentSpanId,
+          traceId,
+          name: "intent-detection",
+          startTime: new Date(intentStartTime).toISOString(),
+          endTime: new Date(intentStartTime + intentLatency).toISOString(),
+          input: { message, historyLength: history.length },
+          output: { category: intent.category, isRecruiter: intent.isRecruiter },
+          metadata: { latencyMs: intentLatency },
+        },
+      },
+      {
+        id: crypto.randomUUID(),
+        type: "generation-create",
+        timestamp: new Date(groqStartTime).toISOString(),
+        body: {
+          id: generationId,
+          traceId,
+          name: "groq-llm-generation",
+          startTime: new Date(groqStartTime).toISOString(),
+          endTime: new Date(groqStartTime + groqLatency).toISOString(),
+          model: "llama-3.3-70b-versatile",
+          modelParameters: { temperature: 0.7, maxTokens },
+          prompt: [
+            { role: "system", content: systemPrompt },
+            ...trimmedHistory,
+            { role: "user", content: message },
+          ],
+          completion: aiReply,
+          usage: {
+            promptTokens: usage.prompt_tokens || 0,
+            completionTokens: usage.completion_tokens || 0,
+            totalTokens: usage.total_tokens || 0,
+          },
+          metadata: {
+            latencyMs: groqLatency,
+            finishReason,
+            truncated: wasTruncated,
+            intentCategory: intent.category,
+            promptVersion: "v2-intent-scoped",
+            provider: "groq",
+            mode: "prompt",
+          },
+        },
+      },
+    ];
+
+    await sendToLangfuseIngestion(env, { batch: langfuseEvents });
+    await incrementRateLimit(env, userIp);
+
+    return new Response(
+      JSON.stringify({
+        reply: aiReply,
+        traceId,
+        metadata: {
+          mode: "prompt",
+          intent: intent.category,
+          latencyMs: totalLatency,
+          tokens: usage.total_tokens || 0,
+        },
+      }),
+      { headers: jsonHeaders() }
+    );
+  } catch (error) {
+    console.error(`[${traceId}] Error:`, error);
+    return errorResponse("Server error: " + error.message, 500);
   }
-};
+}
+
+// ============================================================
+// RAG CHAT HANDLER — Vectorize + Workers AI + Groq
+// ============================================================
+async function handleRagChat(env, request) {
+  const startTime = Date.now();
+  let traceId = null;
+  try {
+    const body = await request.json();
+    const message = body.message;
+    const history = body.history || [];
+    const sessionId = body.sessionId || null;
+    const userIp = request.headers.get("CF-Connecting-IP") || "unknown";
+
+    if (!message || typeof message !== "string" || message.length > 1000) {
+      return errorResponse("Invalid or too long message", 400);
+    }
+    if (!Array.isArray(history) || history.length > 20) {
+      return errorResponse("Invalid or too long history", 400);
+    }
+
+    const rateLimitResult = await checkRateLimit(env, userIp);
+    if (!rateLimitResult.allowed) {
+      return errorResponse(
+        `Rate limit exceeded. Try again in ${rateLimitResult.retryAfter} seconds.`,
+        429,
+        { "Retry-After": rateLimitResult.retryAfter.toString() }
+      );
+    }
+
+    traceId = `trace-rag-${Date.now()}-${Math.random().toString(36).substring(2)}`;
+    const userId = hashIp(userIp);
+    console.log(`[${traceId}] [RAG] Query: ${message}`);
+
+    // ---- Step 1: Generate query embedding via Workers AI ----
+    const embedStartTime = Date.now();
+    const embedSpanId = `span-embed-${Date.now()}-${Math.random().toString(36).substring(2)}`;
+
+    const embeddingResponse = await env.AI.run("@cf/baai/bge-base-en-v1.5", {
+      text: [message],
+    });
+    const queryVector = embeddingResponse.data[0];
+    const embedLatency = Date.now() - embedStartTime;
+    console.log(`[${traceId}] Embedding generated (${embedLatency}ms, ${queryVector.length} dims)`);
+
+    // ---- Step 2: Query Vectorize for relevant PM knowledge ----
+    const searchStartTime = Date.now();
+    const searchSpanId = `span-search-${Date.now()}-${Math.random().toString(36).substring(2)}`;
+
+    const vectorMatches = await env.VECTORIZE.query(queryVector, {
+      topK: 5,
+      returnMetadata: "all",
+    });
+    const searchLatency = Date.now() - searchStartTime;
+
+    // Filter by similarity threshold to avoid noise
+    const relevantMatches = (vectorMatches.matches || []).filter((m) => m.score > 0.5);
+    console.log(
+      `[${traceId}] Vector search: ${vectorMatches.matches?.length || 0} results, ${relevantMatches.length} above threshold (${searchLatency}ms)`
+    );
+
+    // ---- Step 3: Build RAG context from retrieved atoms ----
+    const retrievedAtoms = relevantMatches.map((match) => ({
+      id: match.id,
+      score: Math.round(match.score * 1000) / 1000,
+      title: match.metadata?.title || "Unknown",
+      content: match.metadata?.content || "",
+      tags: match.metadata?.tags || "",
+      use_cases: match.metadata?.use_cases || "",
+    }));
+
+    const ragContext = retrievedAtoms
+      .map(
+        (atom, i) =>
+          `[Source ${i + 1}: ${atom.title}] (relevance: ${atom.score})\n${atom.content}`
+      )
+      .join("\n\n---\n\n");
+
+    // ---- Step 4: Build strict RAG system prompt ----
+    const ragSystemPrompt = buildRagSystemPrompt(ragContext, retrievedAtoms.length);
+
+    // ---- Step 5: Call Groq LLM with retrieved context ----
+    const trimmedHistory = history.slice(-10);
+    const groqStartTime = Date.now();
+    const generationId = `gen-rag-${Date.now()}-${Math.random().toString(36).substring(2)}`;
+
+    const groqRes = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${env.GROQ_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "llama-3.3-70b-versatile",
+        messages: [
+          { role: "system", content: ragSystemPrompt },
+          ...trimmedHistory,
+          { role: "user", content: message },
+        ],
+        max_tokens: 600,
+        temperature: 0.3, // Lower temperature for factual RAG responses
+      }),
+    });
+
+    const groqLatency = Date.now() - groqStartTime;
+    const data = await groqRes.json();
+
+    if (!groqRes.ok) {
+      const errorMessage = data.error?.message || "Groq API error";
+      console.log(`[${traceId}] Groq error: ${errorMessage}`);
+      if (groqRes.status === 429) {
+        return errorResponse(
+          "I'm getting too many requests right now. Please wait a moment and try again.",
+          429,
+          { "Retry-After": "60" }
+        );
+      }
+      return errorResponse("I'm having trouble processing your request. Please try again.", 500);
+    }
+
+    const aiReply = data.choices?.[0]?.message?.content || "Sorry, I couldn't generate a response.";
+    const usage = data.usage || {};
+    const totalLatency = Date.now() - startTime;
+    const finishReason = data.choices?.[0]?.finish_reason || "stop";
+    const wasTruncated = finishReason === "length";
+
+    console.log(
+      `[${traceId}] RAG response generated (${groqLatency}ms, ${usage.total_tokens || 0} tokens, ${retrievedAtoms.length} atoms used)`
+    );
+
+    // ---- Langfuse tracing — RAG mode ----
+    const langfuseEvents = [
+      // Trace
+      {
+        id: crypto.randomUUID(),
+        type: "trace-create",
+        timestamp: new Date(startTime).toISOString(),
+        body: {
+          id: traceId,
+          name: "ronak-chatbot-rag",
+          sessionId,
+          userId,
+          metadata: {
+            mode: "rag",
+            userIp: userIp.substring(0, 10) + "...",
+            messageLength: message.length,
+            historyLength: history.length,
+            totalLatencyMs: totalLatency,
+            embedLatencyMs: embedLatency,
+            searchLatencyMs: searchLatency,
+            groqLatencyMs: groqLatency,
+            totalTokens: usage.total_tokens || 0,
+            promptTokens: usage.prompt_tokens || 0,
+            completionTokens: usage.completion_tokens || 0,
+            retrievedChunks: retrievedAtoms.length,
+            totalSearchResults: vectorMatches.matches?.length || 0,
+            knowledgeSource: "vectorize_rag",
+            promptVersion: "v1-rag",
+            truncated: wasTruncated,
+          },
+          input: { message, history: trimmedHistory },
+          output: {
+            reply: aiReply,
+            metadata: {
+              mode: "rag",
+              retrievedAtoms: retrievedAtoms.map((a) => a.title),
+              latencyMs: totalLatency,
+              tokens: usage.total_tokens || 0,
+              truncated: wasTruncated,
+            },
+          },
+        },
+      },
+      // Span: Embedding generation
+      {
+        id: crypto.randomUUID(),
+        type: "span-create",
+        timestamp: new Date(embedStartTime).toISOString(),
+        body: {
+          id: embedSpanId,
+          traceId,
+          name: "embedding-generation",
+          startTime: new Date(embedStartTime).toISOString(),
+          endTime: new Date(embedStartTime + embedLatency).toISOString(),
+          input: { text: message },
+          output: { dimensions: queryVector.length },
+          metadata: {
+            latencyMs: embedLatency,
+            model: "@cf/baai/bge-base-en-v1.5",
+            provider: "workers-ai",
+          },
+        },
+      },
+      // Span: Vector search
+      {
+        id: crypto.randomUUID(),
+        type: "span-create",
+        timestamp: new Date(searchStartTime).toISOString(),
+        body: {
+          id: searchSpanId,
+          traceId,
+          name: "vectorize-search",
+          startTime: new Date(searchStartTime).toISOString(),
+          endTime: new Date(searchStartTime + searchLatency).toISOString(),
+          input: { topK: 5, similarityThreshold: 0.5 },
+          output: {
+            totalMatches: vectorMatches.matches?.length || 0,
+            relevantMatches: relevantMatches.length,
+            scores: relevantMatches.map((m) => Math.round(m.score * 1000) / 1000),
+            retrievedTitles: retrievedAtoms.map((a) => a.title),
+          },
+          metadata: {
+            latencyMs: searchLatency,
+            indexName: "pm-knowledge-index",
+          },
+        },
+      },
+      // Generation: LLM call
+      {
+        id: crypto.randomUUID(),
+        type: "generation-create",
+        timestamp: new Date(groqStartTime).toISOString(),
+        body: {
+          id: generationId,
+          traceId,
+          name: "groq-rag-generation",
+          startTime: new Date(groqStartTime).toISOString(),
+          endTime: new Date(groqStartTime + groqLatency).toISOString(),
+          model: "llama-3.3-70b-versatile",
+          modelParameters: { temperature: 0.3, maxTokens: 600 },
+          prompt: [
+            { role: "system", content: ragSystemPrompt },
+            ...trimmedHistory,
+            { role: "user", content: message },
+          ],
+          completion: aiReply,
+          usage: {
+            promptTokens: usage.prompt_tokens || 0,
+            completionTokens: usage.completion_tokens || 0,
+            totalTokens: usage.total_tokens || 0,
+          },
+          metadata: {
+            latencyMs: groqLatency,
+            finishReason,
+            truncated: wasTruncated,
+            retrievedChunks: retrievedAtoms.length,
+            promptVersion: "v1-rag",
+            provider: "groq",
+            mode: "rag",
+          },
+        },
+      },
+    ];
+
+    await sendToLangfuseIngestion(env, { batch: langfuseEvents });
+    await incrementRateLimit(env, userIp);
+
+    return new Response(
+      JSON.stringify({
+        reply: aiReply,
+        traceId,
+        metadata: {
+          mode: "rag",
+          retrievedAtoms: retrievedAtoms.map((a) => ({ title: a.title, score: a.score })),
+          latencyMs: totalLatency,
+          tokens: usage.total_tokens || 0,
+        },
+      }),
+      { headers: jsonHeaders() }
+    );
+  } catch (error) {
+    console.error(`[${traceId}] RAG Error:`, error);
+    return errorResponse("Server error: " + error.message, 500);
+  }
+}
+
+// ============================================================
+// RAG SYSTEM PROMPT — Strict, factual, grounded
+// ============================================================
+function buildRagSystemPrompt(ragContext, chunkCount) {
+  if (chunkCount === 0) {
+    return `You are a PM Interview Knowledge Assistant for Ronak Sethiya's portfolio website. You answer questions ONLY based on retrieved PM interview experience context.
+
+IMPORTANT: No relevant PM experience context was found for this question. You MUST respond honestly:
+- Tell the user that this question doesn't match any specific PM interview experience in the knowledge base.
+- Suggest they try asking about specific PM topics like: scaling challenges, stakeholder conflicts, process optimization, vendor management, failure recovery, or technical tradeoffs.
+- Do NOT make up or invent any answer. Do NOT use general knowledge.
+
+RESPONSE FORMAT:
+- Your output is rendered as HTML inside a chat widget.
+- Use <b>bold</b> for emphasis.
+- Use <br><br> for paragraph breaks.
+- NEVER use markdown syntax. Only use HTML.`;
+  }
+
+  return `You are a PM Interview Knowledge Assistant on Ronak Sethiya's portfolio website. You answer questions STRICTLY and ONLY using the PM experience context provided below.
+
+CRITICAL RULES:
+- Answer ONLY using the context below. Do NOT use any general knowledge or information outside these sources.
+- If the context doesn't fully answer the question, say so honestly and explain what IS covered.
+- Cite specific experiences by name when answering (e.g., "In the Settlement Table Partitioning challenge...")
+- Be factual, structured, and interview-ready. This is NOT a casual conversation — it's a PM interview prep tool.
+- Present answers in the STAR format where applicable (Situation, Task, Action, Result).
+
+VOICE & TONE:
+- Professional and precise — like answering a PM interview question
+- First person as Ronak: "I led...", "I identified...", "The challenge was..."
+- Lead with the core answer, then provide structured detail
+- Use specific numbers, timelines, and outcomes from the context
+
+RESPONSE FORMAT:
+- Your output is rendered as HTML inside a chat widget.
+- Use <b>bold</b> for key metrics, outcomes, and experience names.
+- Use <br><br> for paragraph breaks.
+- For structured answers, use <br> separated lines with "→" as bullets.
+- NEVER use markdown syntax (no **, no ##). Only use HTML.
+- Keep responses thorough but focused — 4-8 sentences with clear structure.
+
+PM EXPERIENCE CONTEXT (${chunkCount} relevant experiences retrieved):
+---
+${ragContext}
+---
+
+BOUNDARIES:
+- If asked about topics NOT covered in the context above, say: "That specific topic isn't covered in my PM interview knowledge base. I can speak to experiences about [list what IS in context]. Would you like to explore one of those?"
+- Never fabricate metrics, dates, or details not present in the context.
+- Never fall back to generic PM advice — only use the specific experiences above.`;
+}
+
+// ============================================================
+// SEED VECTORS — Admin endpoint to ingest knowledge.json
+// ============================================================
+async function handleSeedVectors(env, request) {
+  try {
+    const url = new URL(request.url);
+    const adminKey = url.searchParams.get("key");
+
+    if (adminKey !== env.ADMIN_KEY) {
+      return errorResponse("Unauthorized", 401);
+    }
+
+    // Knowledge base — embedded directly to avoid file system access in Workers
+    const knowledgeBase = [
+      {
+        id: "atom_1",
+        title: "Settlement Table Partitioning",
+        summary: "Eliminated transaction timeouts by redesigning a 45Cr row database using partitioning",
+        tags: ["scaling", "system design", "backend"],
+        use_cases: ["technical problem", "scaling challenge"],
+        content: "As the UPI platform scaled to ~30L merchants and ~10 lakh transactions/day, the settlement table grew to ~45 crore rows. During peak loads, table locks caused transaction timeouts. I audited 30+ queries and implemented date-based partitioning with a 3-phase migration and 10-minute downtime. I rejected hash partitioning due to complexity and accepted a 2-month dev freeze. Post-migration, failures were eliminated and partner confidence was restored.",
+      },
+      {
+        id: "atom_2",
+        title: "Risk Hold Policy Improvement",
+        summary: "Improved merchant experience and ratings by redesigning risk hold communication and policy",
+        tags: ["product", "stakeholder", "ux"],
+        use_cases: ["improving UX", "stakeholder conflict"],
+        content: "Merchants complained about a 30-day risk hold policy, leading to ~3.5 app rating. I built real-time Kafka-based notifications and proposed a policy split: 14 days for Yes Bank merchants and 30 days for partner merchants. Despite compliance resistance, I justified segmentation based on risk profiles. Ratings improved to ~4.2 and support tickets reduced significantly.",
+      },
+      {
+        id: "atom_3",
+        title: "iOS App Launch",
+        summary: "Shipped a stalled product by aggressively reducing scope and fixing delivery blockers",
+        tags: ["execution", "prioritization"],
+        use_cases: ["shipping under constraints"],
+        content: "The iOS app had been stalled for ~1 year. I cut scope (removed dark mode, multilingual), fixed CI/CD issues, and built a demo mode for Apple approval. Despite multiple rejections, we launched in ~4 months.",
+      },
+      {
+        id: "atom_4",
+        title: "Bureau Integration Decision",
+        summary: "Replaced failing middleware with custom CIBIL integration to unblock loan processing",
+        tags: ["technical", "decision-making"],
+        use_cases: ["technical tradeoff"],
+        content: "The existing CIBIL integration relied on outdated middleware with no support and unknown error codes. I proposed a ₹50L custom integration after showing business losses from failures. It resolved a major bottleneck and became a template across the bank.",
+      },
+      {
+        id: "atom_5",
+        title: "BRE Workflow Rebuild",
+        summary: "Reduced underwriting workflow complexity from 40 to 22 forms to improve TAT and FTR",
+        tags: ["product design", "systems"],
+        use_cases: ["process optimization"],
+        content: "The underwriting workflow had ~40 forms. After deep domain immersion, I reduced it to 22 by removing duplication, shifting responsibilities, and redesigning flows. TAT reduced from 15 to 7 days and FTR improved from ~10% to ~40%.",
+      },
+      {
+        id: "atom_6",
+        title: "LMS Migration",
+        summary: "Executed phased migration of 5000+ dealers and 120 anchors without disruption",
+        tags: ["execution", "program management"],
+        use_cases: ["large scale rollout"],
+        content: "Migrated 5000+ dealers and 120 anchors using a phased approach to avoid financial mismatches. Managed APIs, communication, and training. Migration completed with minimal escalations.",
+      },
+      {
+        id: "atom_7",
+        title: "Stakeholder Alignment",
+        summary: "Unblocked stalled project by aligning credit leadership without formal authority",
+        tags: ["leadership", "influence"],
+        use_cases: ["stakeholder conflict"],
+        content: "The credit team lacked ownership. I escalated to the National Credit Head and aligned stakeholders, driving the project forward despite no direct authority.",
+      },
+      {
+        id: "atom_8",
+        title: "Training & Adoption",
+        summary: "Improved adoption across 2000 RMs through continuous training and engagement",
+        tags: ["change management"],
+        use_cases: ["driving adoption"],
+        content: "RMs had low usage frequency and poor recall. I conducted 100+ hours of training, daily support calls, and created SOPs and videos. This improved adoption significantly.",
+      },
+      {
+        id: "atom_9",
+        title: "AML Flow Redesign",
+        summary: "Proposed mid-window AML model to solve real-time vs batch tradeoff",
+        tags: ["product thinking"],
+        use_cases: ["ambiguous problem"],
+        content: "Real-time AML caused timeouts while T+1 created reconciliation issues. I proposed a 30–60 min AML window to balance compliance and system performance. Proposal under discussion.",
+      },
+      {
+        id: "atom_10",
+        title: "Vendor Management",
+        summary: "Maintained delivery despite vendor deprioritization post billing",
+        tags: ["vendor"],
+        use_cases: ["vendor management"],
+        content: "Vendor responsiveness dropped after billing began. I used escalation channels and strong relationships while front-loading execution earlier.",
+      },
+      {
+        id: "atom_11",
+        title: "UAT Breakdown Recovery",
+        summary: "Recovered failing UAT by imposing structure and ownership",
+        tags: ["failure", "execution"],
+        use_cases: ["failure recovery"],
+        content: "UAT failed due to lack of ownership. I trained teams, defined testing standards, and acted as SPOC. This enabled successful completion.",
+      },
+      {
+        id: "atom_12",
+        title: "Missed Scenario Failure",
+        summary: "Identified critical product gaps leading to full workflow rebuild",
+        tags: ["failure", "product"],
+        use_cases: ["learning from failure"],
+        content: "CUG revealed failures due to missed real-world scenarios. I identified gaps and triggered a full workflow rebuild.",
+      },
+      {
+        id: "atom_13",
+        title: "Underwriting Deep Dive",
+        summary: "Built deep domain expertise to redesign product accurately",
+        tags: ["domain", "user empathy"],
+        use_cases: ["understanding users"],
+        content: "I embedded with underwriting teams to understand MSME credit decisions. This informed the entire product redesign.",
+      },
+      {
+        id: "atom_14",
+        title: "GST-Bank Validation Insight",
+        summary: "Introduced cross-data validation to improve underwriting accuracy",
+        tags: ["analytics"],
+        use_cases: ["data-driven decisions"],
+        content: "Introduced heuristic that ~80% GST turnover should reflect in bank statements, improving fraud detection and accuracy.",
+      },
+      {
+        id: "atom_15",
+        title: "FLDG Compliance Fix",
+        summary: "Closed compliance gap by enforcing strict credit thresholds",
+        tags: ["risk"],
+        use_cases: ["ethical decision"],
+        content: "CMR 9–10 cases were being approved under FLDG. I enforced thresholds, rejecting ~3–4% risky cases and improving compliance.",
+      },
+      {
+        id: "atom_16",
+        title: "Drop-off Funnel Creation",
+        summary: "Built analytics to systematically reduce TAT",
+        tags: ["metrics"],
+        use_cases: ["improving metrics"],
+        content: "Built stage-wise funnel tracking to identify bottlenecks and reduce TAT from 12 to 7 days.",
+      },
+      {
+        id: "atom_17",
+        title: "RM to CPA Shift",
+        summary: "Improved accuracy by shifting tasks to specialized users",
+        tags: ["process"],
+        use_cases: ["efficiency improvement"],
+        content: "Shifted responsibilities from RMs to CPAs, improving FTR rates and reducing errors.",
+      },
+      {
+        id: "atom_18",
+        title: "Anchor Rule Standardization",
+        summary: "Balanced standardization and flexibility in underwriting rules",
+        tags: ["system design"],
+        use_cases: ["standardization"],
+        content: "Standardized 6 variables and kept 4 configurable across anchors to balance consistency and flexibility.",
+      },
+      {
+        id: "atom_19",
+        title: "100-Case Validation",
+        summary: "Ensured system accuracy before launch using empirical validation",
+        tags: ["quality"],
+        use_cases: ["quality assurance"],
+        content: "Ran 100 cases comparing digital vs Excel outputs to ensure alignment before go-live.",
+      },
+      {
+        id: "atom_20",
+        title: "NPA Architecture Conflict",
+        summary: "Resolved architecture conflict with configurable grace period system",
+        tags: ["stakeholder"],
+        use_cases: ["conflict resolution"],
+        content: "New LMS blocked all limits on NPA. I introduced configurable grace periods to balance risk and business needs.",
+      },
+      {
+        id: "atom_21",
+        title: "Dealer Communication Ownership",
+        summary: "Took ownership of communication to enable smooth migration",
+        tags: ["leadership"],
+        use_cases: ["ownership"],
+        content: "No team owned dealer communication. I created documentation and videos, enabling smooth migration.",
+      },
+      {
+        id: "atom_22",
+        title: "Vendor Incentive Misalignment",
+        summary: "Managed vendor slowdown through escalation and relationship management",
+        tags: ["vendor"],
+        use_cases: ["vendor management"],
+        content: "Handled post-billing vendor deprioritization through escalation and alignment.",
+      },
+      {
+        id: "atom_23",
+        title: "Executive Defense",
+        summary: "Defended complex product decisions under leadership pressure",
+        tags: ["communication"],
+        use_cases: ["handling pressure"],
+        content: "Explained workflow decisions in a high-pressure meeting, securing leadership buy-in.",
+      },
+      {
+        id: "atom_24",
+        title: "API Lifecycle Management",
+        summary: "Managed large-scale partner ecosystem with structured API communication",
+        tags: ["platform"],
+        use_cases: ["platform management"],
+        content: "Managed ~600 API partners with structured rollout for breaking and non-breaking changes.",
+      },
+      {
+        id: "atom_25",
+        title: "Saying No to Partner",
+        summary: "Protected system performance by refusing non-scalable partner request",
+        tags: ["prioritization"],
+        use_cases: ["saying no"],
+        content: "Rejected a 90-day API request due to performance impact, offering alternatives instead.",
+      },
+    ];
+
+    console.log(`[SEED] Starting vector ingestion for ${knowledgeBase.length} atoms...`);
+
+    // Generate embeddings for all atoms
+    const texts = knowledgeBase.map(
+      (atom) => `${atom.title}: ${atom.summary}. ${atom.content}`
+    );
+
+    // Process in batches of 5 (Workers AI limit)
+    const allVectors = [];
+    for (let i = 0; i < texts.length; i += 5) {
+      const batch = texts.slice(i, i + 5);
+      const batchAtoms = knowledgeBase.slice(i, i + 5);
+
+      const embeddingResponse = await env.AI.run("@cf/baai/bge-base-en-v1.5", {
+        text: batch,
+      });
+
+      for (let j = 0; j < batch.length; j++) {
+        allVectors.push({
+          id: batchAtoms[j].id,
+          values: embeddingResponse.data[j],
+          metadata: {
+            title: batchAtoms[j].title,
+            summary: batchAtoms[j].summary,
+            content: batchAtoms[j].content,
+            tags: batchAtoms[j].tags.join(", "),
+            use_cases: batchAtoms[j].use_cases.join(", "),
+          },
+        });
+      }
+
+      console.log(`[SEED] Embedded batch ${Math.floor(i / 5) + 1}/${Math.ceil(texts.length / 5)}`);
+    }
+
+    // Upsert all vectors into Vectorize
+    const upsertResult = await env.VECTORIZE.upsert(allVectors);
+    console.log(`[SEED] Upserted ${allVectors.length} vectors. Result:`, JSON.stringify(upsertResult));
+
+    return new Response(
+      JSON.stringify({
+        status: "success",
+        message: `Seeded ${allVectors.length} vectors into pm-knowledge-index`,
+        vectors: allVectors.map((v) => ({ id: v.id, title: v.metadata.title })),
+      }),
+      { headers: jsonHeaders() }
+    );
+  } catch (error) {
+    console.error("[SEED] Error:", error);
+    return errorResponse("Seed error: " + error.message, 500);
+  }
+}
+
+// ============================================================
+// INTENT DETECTION (Prompt mode)
+// ============================================================
+function detectIntent(message, history) {
+  const lowerMessage = message.toLowerCase();
+
+  const isRecruiter =
+    history.some(
+      (msg) =>
+        msg.content &&
+        (msg.content.toLowerCase().includes("recruit") ||
+          msg.content.toLowerCase().includes("hiring") ||
+          msg.content.toLowerCase().includes("position") ||
+          msg.content.toLowerCase().includes("interview") ||
+          msg.content.toLowerCase().includes("job opening") ||
+          msg.content.toLowerCase().includes("candidate") ||
+          msg.content.toLowerCase().includes("resume") ||
+          msg.content.toLowerCase().includes("cv"))
+    ) ||
+    lowerMessage.includes("recruit") ||
+    lowerMessage.includes("hiring") ||
+    lowerMessage.includes("candidate");
+
+  let category = "general";
+
+  if (
+    lowerMessage.match(
+      /\b(ai|artificial intelligence|llm|machine learning|ml|langchain|agent|rag|gpt|chatbot|gemma|langraph|langgraph)\b/
+    )
+  ) {
+    category = "ai_skills";
+  } else if (
+    lowerMessage.match(
+      /\b(project|portfolio|case study|built|developed|implemented|demo|github|app)\b/
+    )
+  ) {
+    category = "projects";
+  } else if (
+    lowerMessage.match(
+      /\b(experience|role|responsibility|job|career|company|yes bank|idfc|l&t|larsen)\b/
+    )
+  ) {
+    category = "experience";
+  } else if (
+    lowerMessage.match(
+      /\b(technical|skill|technology|tool|api|system|python|sql|stack|code|programming)\b/
+    )
+  ) {
+    category = "technical";
+  } else if (
+    lowerMessage.match(
+      /\b(achievement|award|success|accomplishment|impact|result|metric)\b/
+    )
+  ) {
+    category = "achievements";
+  } else if (
+    lowerMessage.match(
+      /\b(education|degree|study|iit|college|mba|university|bombay|fcrit)\b/
+    )
+  ) {
+    category = "education";
+  } else if (
+    lowerMessage.match(
+      /\b(team|manage|leadership|lead|mentor|collaborate|stakeholder)\b/
+    )
+  ) {
+    category = "leadership";
+  }
+
+  return { category, isRecruiter };
+}
+
+// ============================================================
+// PROMPT-MODE SYSTEM PROMPT BUILDER
+// ============================================================
+function buildSystemPrompt(intent) {
+  const relevantKB = getRelevantKB(intent);
+
+  const recruiterEmphasis = intent.isRecruiter
+    ? `\n\nIMPORTANT — RECRUITER DETECTED: This person is likely evaluating Ronak for a role. Lead with impact and results. Emphasize the AI-powered Lead Management System, blockchain project, 1M+ daily transactions platform scale, and hands-on AI prototyping. Connect experiences to the value Ronak brings to an AI-driven product team. Include links to relevant case studies.`
+    : "";
+
+  const categoryGuidance = {
+    ai_skills:
+      "\n\nDIRECTION: Go deep on AI work. Reference specific frameworks, architectures, and real implementations. Link to relevant project pages.",
+    projects:
+      "\n\nDIRECTION: Tell the story of each project — the problem, what Ronak did, and the measurable outcome. Always include the project link from the portfolio.",
+    technical:
+      "\n\nDIRECTION: Be specific about tools, languages, and systems. Show technical depth but keep it accessible.",
+    achievements:
+      "\n\nDIRECTION: Lead with numbers and business impact. Every achievement should have a metric attached.",
+    leadership:
+      "\n\nDIRECTION: Give concrete examples of leading teams, aligning stakeholders, and driving cross-functional execution.",
+    education:
+      "\n\nDIRECTION: Highlight IIT Bombay MBA, engineering foundation, and how education connects to current work.",
+    experience:
+      '\n\nDIRECTION: Walk through the career arc — engineering roots at L&T, credit risk strategy at IDFC, to platform PM and AI at Yes Bank. Show progression.',
+  };
+
+  const basePrompt = `You are Ronak Sethiya's AI — a conversational assistant on his portfolio website. You speak as Ronak in first person ("I built...", "At Yes Bank, I...").
+
+VOICE & TONE:
+- Warm, confident, and conversational — like a smart colleague explaining their work over coffee
+- NOT robotic, NOT salesy, NOT generic-corporate
+- Use first person naturally: "I led...", "What excited me about this was...", "The tricky part was..."
+- Show genuine enthusiasm for the work without being over-the-top
+- Be direct. Open with the answer, then add context
+
+RESPONSE FORMAT:
+- Your output is rendered as HTML inside a chat widget. You may use basic inline HTML for formatting.
+- Use <b>bold</b> for key metrics, company names, and project names
+- Use <br><br> for paragraph breaks (NOT markdown newlines)
+- For lists, use simple <br> separated lines with "→" as bullets, e.g.: <br>→ Built RAG chatbot<br>→ Deployed multi-modal agent
+- When referencing a project, include a clickable link: <a href="https://ronaksethiya.com/projects/slug/" style="color:#6b8ef7;">Project Name</a>
+- NEVER use markdown syntax (no **, no ##, no - bullets). Only use HTML.
+- Keep responses 3-6 sentences for simple questions, longer (with structure) for deep-dive questions
+- End with a natural follow-up prompt when appropriate: "Want me to walk you through the technical architecture?" or "I can share more about the AI side of this — interested?"
+
+KNOWLEDGE BASE:
+${relevantKB}
+${recruiterEmphasis}${categoryGuidance[intent.category] || ""}
+
+BOUNDARIES:
+- Only discuss topics covered in the knowledge base
+- For off-topic questions, redirect warmly: "That's a great question! My expertise is really in fintech and AI product management though — want to hear about a project I'm excited about?"
+- If you don't have specific details, say so honestly and pivot to what you do know
+- Never fabricate metrics, dates, or project details not in the knowledge base`;
+
+  return basePrompt;
+}
+
+// ============================================================
+// TOKEN LIMITS (Prompt mode)
+// ============================================================
+function getMaxTokens(message, intent) {
+  if (message.length < 30) return 250;
+  if (intent.category === "technical" || intent.category === "ai_skills") return 500;
+  if (intent.category === "projects") return 500;
+  if (intent.isRecruiter) return 500;
+  return 400;
+}
+
+// ============================================================
+// LANGFUSE INGESTION
+// ============================================================
+async function sendToLangfuseIngestion(env, data) {
+  try {
+    const authString = btoa(`${env.LANGFUSE_PUBLIC_KEY}:${env.LANGFUSE_SECRET_KEY}`);
+    console.log(`Sending ${data.batch?.length || 0} events to Langfuse`);
+
+    const response = await fetch(`${env.LANGFUSE_HOST}/api/public/ingestion`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Basic ${authString}`,
+      },
+      body: JSON.stringify(data),
+    });
+
+    const responseText = await response.text();
+
+    if (!response.ok) {
+      console.error(`Langfuse ingestion failed: ${response.status}`);
+      console.error(`Response: ${responseText}`);
+      return false;
+    }
+
+    console.log(`Langfuse ingestion success: ${response.status}`);
+
+    try {
+      const result = JSON.parse(responseText);
+      console.log(`Langfuse accepted: ${result.successes || 0} events, ${result.errors || 0} errors`);
+    } catch (e) {
+      console.log(`Response text: ${responseText}`);
+    }
+
+    return true;
+  } catch (error) {
+    console.error(`Langfuse ingestion exception: ${error.message}`);
+    return false;
+  }
+}
+
+// ============================================================
+// RATE LIMITING
+// ============================================================
+async function checkRateLimit(env, userIp) {
+  const key = `ratelimit:${hashIp(userIp)}`;
+  const now = Date.now();
+  const windowMs = 60 * 60 * 1000;
+  const maxRequests = 20;
+
+  try {
+    const data = await env.RATE_LIMIT_KV.get(key, "json");
+    if (!data) return { allowed: true };
+
+    const recentRequests = data.timestamps.filter((ts) => now - ts < windowMs);
+
+    if (recentRequests.length >= maxRequests) {
+      const oldestRequest = Math.min(...recentRequests);
+      const retryAfter = Math.ceil((oldestRequest + windowMs - now) / 1000);
+      return { allowed: false, retryAfter };
+    }
+
+    return { allowed: true };
+  } catch (error) {
+    console.error("Rate limit check error:", error);
+    return { allowed: true };
+  }
+}
+
+async function incrementRateLimit(env, userIp) {
+  const key = `ratelimit:${hashIp(userIp)}`;
+  const now = Date.now();
+  const windowMs = 60 * 60 * 1000;
+
+  try {
+    let data = await env.RATE_LIMIT_KV.get(key, "json");
+    if (!data) data = { timestamps: [] };
+
+    data.timestamps = data.timestamps.filter((ts) => now - ts < windowMs);
+    data.timestamps.push(now);
+
+    await env.RATE_LIMIT_KV.put(key, JSON.stringify(data), {
+      expirationTtl: 2 * 60 * 60,
+    });
+  } catch (error) {
+    console.error("Rate limit increment error:", error);
+  }
+}
+
+// ============================================================
+// FEEDBACK HANDLER
+// ============================================================
+async function handleFeedback(env, request) {
+  try {
+    const body = await request.json();
+    const { traceId, score, comment, category } = body;
+
+    if (!traceId || typeof score !== "number") {
+      return errorResponse("Invalid feedback data", 400);
+    }
+
+    const feedbackId = `feedback-${Date.now()}`;
+    const feedbackData = {
+      id: feedbackId,
+      traceId,
+      score,
+      comment: comment || "",
+      category: category || "general",
+      timestamp: new Date().toISOString(),
+    };
+
+    await env.FEEDBACK_KV.put(feedbackId, JSON.stringify(feedbackData), {
+      expirationTtl: 90 * 24 * 60 * 60,
+    });
+
+    await sendToLangfuseIngestion(env, {
+      batch: [
+        {
+          id: crypto.randomUUID(),
+          type: "score-create",
+          timestamp: new Date().toISOString(),
+          body: {
+            traceId,
+            name: category || "user-feedback",
+            value: score,
+            comment: comment || "",
+          },
+        },
+      ],
+    });
+
+    console.log(`Feedback recorded: ${feedbackId}`);
+
+    return new Response(
+      JSON.stringify({ status: "Feedback recorded", feedbackId }),
+      { headers: jsonHeaders() }
+    );
+  } catch (error) {
+    console.error("Feedback error:", error);
+    return errorResponse("Invalid feedback submission", 400);
+  }
+}
+
+// ============================================================
+// ANALYTICS
+// ============================================================
+async function getAnalytics(env, request) {
+  try {
+    const url = new URL(request.url);
+    const adminKey = url.searchParams.get("key");
+
+    if (adminKey !== env.ADMIN_KEY) {
+      return errorResponse("Unauthorized", 401);
+    }
+
+    const feedbackList = await env.FEEDBACK_KV.list({ limit: 100 });
+    const feedbacks = await Promise.all(
+      feedbackList.keys.map(async (key) => {
+        const data = await env.FEEDBACK_KV.get(key.name, "json");
+        return data;
+      })
+    );
+
+    const validFeedbacks = feedbacks.filter((f) => f !== null);
+
+    const stats = {
+      totalFeedback: validFeedbacks.length,
+      averageScore:
+        validFeedbacks.length > 0
+          ? validFeedbacks.reduce((sum, f) => sum + f.score, 0) / validFeedbacks.length
+          : 0,
+      categoryBreakdown: {},
+      recentFeedback: validFeedbacks.slice(-10).reverse(),
+    };
+
+    validFeedbacks.forEach((f) => {
+      stats.categoryBreakdown[f.category] = (stats.categoryBreakdown[f.category] || 0) + 1;
+    });
+
+    return new Response(JSON.stringify(stats, null, 2), { headers: jsonHeaders() });
+  } catch (error) {
+    return errorResponse("Analytics error: " + error.message, 500);
+  }
+}
+
+// ============================================================
+// HEALTH CHECK
+// ============================================================
+function healthCheck(env) {
+  const checks = {
+    worker: "ok",
+    groq_key: env.GROQ_API_KEY ? "ok" : "missing",
+    langfuse_keys:
+      env.LANGFUSE_PUBLIC_KEY && env.LANGFUSE_SECRET_KEY ? "ok" : "missing",
+    rate_limit_kv: env.RATE_LIMIT_KV ? "ok" : "missing",
+    feedback_kv: env.FEEDBACK_KV ? "ok" : "missing",
+    vectorize: env.VECTORIZE ? "ok" : "missing",
+    workers_ai: env.AI ? "ok" : "missing",
+    modes: ["prompt", "rag"],
+    knowledge_source_prompt: "intent_scoped_kb",
+    knowledge_source_rag: "vectorize_pm-knowledge-index",
+  };
+
+  return new Response(JSON.stringify(checks, null, 2), { headers: jsonHeaders() });
+}
+
+// ============================================================
+// UTILITIES
+// ============================================================
+function hashIp(ip) {
+  let hash = 0;
+  for (let i = 0; i < ip.length; i++) {
+    hash = (hash << 5) - hash + ip.charCodeAt(i);
+    hash = hash & hash;
+  }
+  return `user-${Math.abs(hash)}`;
+}
+
+function errorResponse(message, status = 500, extraHeaders = {}) {
+  return new Response(JSON.stringify({ error: message }), {
+    status,
+    headers: {
+      "Content-Type": "application/json",
+      "Access-Control-Allow-Origin": "https://ronaksethiya.com",
+      ...extraHeaders,
+    },
+  });
+}

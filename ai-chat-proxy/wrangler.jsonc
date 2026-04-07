@@ -1,4 +1,7 @@
 /**
+ * AI Chat Proxy — Dual Mode Worker
+ * Prompt-based chat + RAG-powered PM Expert mode
+ * 
  * For more details on how to configure Wrangler, refer to:
  * https://developers.cloudflare.com/workers/wrangler/configuration/
  */
@@ -9,7 +12,45 @@
 	"compatibility_date": "2025-04-13",
 	"observability": {
 		"enabled": true
-	}
+	},
+
+	/**
+	 * Vectorize — PM Knowledge Base Index
+	 * Create the index first:
+	 *   npx wrangler vectorize create pm-knowledge-index --preset "@cf/baai/bge-base-en-v1.5"
+	 * 
+	 * Then seed it:
+	 *   curl -X POST "https://your-worker.dev/admin/seed?key=YOUR_ADMIN_KEY"
+	 */
+	"vectorize": [
+		{
+			"binding": "VECTORIZE",
+			"index_name": "pm-knowledge-index"
+		}
+	],
+
+	/**
+	 * Workers AI — for embedding generation (bge-base-en-v1.5)
+	 * No API key needed — native Cloudflare binding
+	 */
+	"ai": {
+		"binding": "AI"
+	},
+
+	/**
+	 * KV Namespaces — Rate Limiting & Feedback Storage
+	 */
+	"kv_namespaces": [
+		{
+			"binding": "RATE_LIMIT_KV",
+			"id": "63c5b1442b134438a6963873b58c2897"
+		},
+		{
+			"binding": "FEEDBACK_KV",
+			"id": "0996be6c2b1a47d4bcec6fa5517d4b0d"
+		}
+	],
+
 	/**
 	 * Smart Placement
 	 * Docs: https://developers.cloudflare.com/workers/configuration/smart-placement/#smart-placement
@@ -17,21 +58,21 @@
 	// "placement": { "mode": "smart" },
 
 	/**
-	 * Bindings
-	 * Bindings allow your Worker to interact with resources on the Cloudflare Developer Platform, including
-	 * databases, object storage, AI inference, real-time communication and more.
-	 * https://developers.cloudflare.com/workers/runtime-apis/bindings/
-	 */
-
-	/**
 	 * Environment Variables
 	 * https://developers.cloudflare.com/workers/wrangler/configuration/#environment-variables
+	 *
+	 * Required secrets (set via `wrangler secret put`):
+	 *   - GROQ_API_KEY
+	 *   - LANGFUSE_PUBLIC_KEY
+	 *   - LANGFUSE_SECRET_KEY
+	 *   - LANGFUSE_HOST
+	 *   - ADMIN_KEY
+	 *
+	 * Required KV namespaces (bind via Cloudflare dashboard):
+	 *   - RATE_LIMIT_KV
+	 *   - FEEDBACK_KV
 	 */
 	// "vars": { "MY_VARIABLE": "production_value" },
-	/**
-	 * Note: Use secrets to store sensitive data.
-	 * https://developers.cloudflare.com/workers/configuration/secrets/
-	 */
 
 	/**
 	 * Static Assets

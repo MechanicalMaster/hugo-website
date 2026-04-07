@@ -1,17 +1,41 @@
 /**
- * AI Chat Widget
+ * AI Chat Widget — Dual Mode
+ * Mode 1: "Chat" — Prompt-based conversational AI (existing)
+ * Mode 2: "PM Expert" — RAG-powered PM interview knowledge
+ * 
  * Premium blue-purple gradient theme matching the site's design system.
- * Requires: Cloudflare Worker endpoint at /api/chat
+ * Requires: Cloudflare Worker endpoints at /api/chat and /api/chat/rag
  */
 (function () {
-  // Pre-made prompt cards
-  const promptCards = [
-    "Show me your latest project",
-    "What are your skills?",
-    "Tell me about your banking experience"
-  ];
+  // ============================================================
+  // STATE
+  // ============================================================
+  let chatMode = 'chat'; // 'chat' or 'rag'
+  let history = [];
+  let sessionId = 'session-' + Date.now() + '-' + Math.random().toString(36).substring(2);
 
-  // Site theme tokens
+  // Suggested questions per mode
+  const suggestedByMode = {
+    chat: [
+      "Show me your latest project",
+      "What are your skills?",
+      "Tell me about your Product Management experience",
+    ],
+    rag: [
+      "How did you handle a database scaling challenge?",
+      "Tell me about a stakeholder conflict you resolved",
+      "Walk me through your underwriting workflow redesign",
+    ],
+  };
+
+  const subtitleByMode = {
+    chat: "Trained on my product work and case studies",
+    rag: "RAG-powered · Answers from real PM interview experience",
+  };
+
+  // ============================================================
+  // SITE THEME TOKENS
+  // ============================================================
   const T = {
     light: {
       bg: '#ffffff',
@@ -33,6 +57,9 @@
       chipBorder: '#e2e8f0',
       chipHover: '#f0f4ff',
       disclaimerText: '#94a3b8',
+      ragBadgeBg: 'rgba(16,185,129,0.08)',
+      ragBadgeText: '#10b981',
+      ragBadgeBorder: 'rgba(16,185,129,0.2)',
     },
     dark: {
       bg: '#0a0f1e',
@@ -54,14 +81,14 @@
       chipBorder: '#1e293b',
       chipHover: '#1a2680',
       disclaimerText: '#64748b',
+      ragBadgeBg: 'rgba(16,185,129,0.1)',
+      ragBadgeText: '#34d399',
+      ragBadgeBorder: 'rgba(16,185,129,0.25)',
     },
   };
   const GRADIENT = 'linear-gradient(135deg, #4f6ef3 0%, #8b5cf6 100%)';
   const GRADIENT_HOVER = 'linear-gradient(135deg, #3b55e8 0%, #7c3aed 100%)';
-
-  // Create chat bubble button with custom SVG
-  const bubble = document.createElement('div');
-  bubble.id = 'ai-chat-bubble';
+  const RAG_GRADIENT = 'linear-gradient(135deg, #10b981 0%, #06b6d4 100%)';
 
   function getTheme() {
     if (document.documentElement.classList.contains('dark') ||
@@ -73,13 +100,19 @@
   let theme = getTheme();
   function t() { return T[theme]; }
 
+  // ============================================================
+  // CHAT BUBBLE BUTTON
+  // ============================================================
+  const bubble = document.createElement('div');
+  bubble.id = 'ai-chat-bubble';
+
   function setBubbleGradient() {
     bubble.style.background = GRADIENT;
   }
   setBubbleGradient();
 
-  // Listen for theme changes
-  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
+  // Theme change listeners
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
     theme = getTheme();
     setBubbleGradient();
     updateSVGColors();
@@ -94,7 +127,7 @@
   });
   observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
 
-  // SVG with animatable dots
+  // SVG icon with animated dots
   bubble.innerHTML = `
     <svg id="ai-bubble-svg" width="36" height="36" viewBox="0 0 36 36" fill="none">
       <circle id="bubble-bg" cx="18" cy="18" r="18" fill="transparent"/>
@@ -104,6 +137,7 @@
       <circle class="bubble-dot" cx="20" cy="18" r="1" fill="rgba(79,110,243,0.7)"/>
     </svg>
   `;
+
   function updateSVGColors() {
     const svg = bubble.querySelector('#ai-bubble-svg');
     if (!svg) return;
@@ -130,7 +164,7 @@
   bubble.style.boxShadow = '0 4px 24px rgba(79,110,243,0.25), 0 2px 8px rgba(139,92,246,0.15)';
   bubble.style.transition = 'transform 0.2s ease, box-shadow 0.3s ease';
 
-  // Add pulse animation and tooltip for first-time users
+  // Pulse animation for first-time users
   const hasInteracted = localStorage.getItem('aiChatBubbleInteracted');
   if (!hasInteracted) {
     bubble.classList.add('ai-chat-bubble-pulse');
@@ -138,7 +172,7 @@
       "Ask me about my projects!",
       "Got a question?",
       "Let's chat!",
-      "Try a prompt below!"
+      "Try PM Expert mode!",
     ];
     let tooltipIndex = 0;
     const tooltip = document.createElement('div');
@@ -176,6 +210,7 @@
       tooltip.remove();
     }, { once: true });
   }
+
   bubble.onmouseover = () => {
     bubble.style.transform = 'scale(1.08)';
     bubble.style.boxShadow = '0 8px 32px rgba(79,110,243,0.35), 0 4px 12px rgba(139,92,246,0.2)';
@@ -186,7 +221,9 @@
   };
   document.body.appendChild(bubble);
 
-  // Add pulse and dot animation CSS
+  // ============================================================
+  // CSS ANIMATIONS
+  // ============================================================
   const styleEnh = document.createElement('style');
   styleEnh.innerHTML = `
     .ai-chat-bubble-pulse {
@@ -197,7 +234,6 @@
       50% { box-shadow: 0 4px 24px rgba(79,110,243,0.25), 0 0 0 10px rgba(79,110,243,0.08); }
       100% { box-shadow: 0 4px 24px rgba(79,110,243,0.25), 0 0 0 0 rgba(79,110,243,0); }
     }
-    /* Animated dots in SVG */
     .bubble-dot {
       transform-origin: center;
       animation: bubble-dot-bounce 1.2s infinite;
@@ -216,7 +252,9 @@
   `;
   document.head.appendChild(styleEnh);
 
-  // Create chat window
+  // ============================================================
+  // CHAT WINDOW
+  // ============================================================
   const chatWindow = document.createElement('div');
   chatWindow.id = 'ai-chat-window';
   chatWindow.style.position = 'fixed';
@@ -241,32 +279,83 @@
     <div id="ai-chat-header" style="
       background:${GRADIENT};
       color:#ffffff;
-      padding:20px 20px;
+      padding:16px 20px;
       display:flex;
-      justify-content:space-between;
-      align-items:center;
+      flex-direction:column;
+      gap:10px;
+      transition:background 0.4s ease;
     ">
-      <div style="display:flex;flex-direction:column;gap:3px;">
-        <span style="font-size:0.95rem;font-weight:600;font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;letter-spacing:-0.01em;">Ask my AI about what I've built</span>
-        <span style="font-size:0.7rem;font-weight:400;opacity:0.75;font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">Trained on my product work and case studies</span>
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <div style="display:flex;flex-direction:column;gap:3px;">
+          <span id="ai-chat-title" style="font-size:0.95rem;font-weight:600;font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;letter-spacing:-0.01em;">Ask my AI about what I've built</span>
+          <span id="ai-chat-subtitle" style="font-size:0.7rem;font-weight:400;opacity:0.75;font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">${subtitleByMode.chat}</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:4px;">
+          <button id="ai-chat-edit" style="background:rgba(255,255,255,0.15);border:none;color:#fff;cursor:pointer;padding:6px;border-radius:8px;transition:background 0.2s;display:flex;align-items:center;justify-content:center;" onmouseover="this.style.background='rgba(255,255,255,0.25)'" onmouseout="this.style.background='rgba(255,255,255,0.15)'">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+            </svg>
+          </button>
+          <button id="ai-chat-close" style="background:rgba(255,255,255,0.15);border:none;color:#fff;cursor:pointer;padding:6px;border-radius:8px;transition:background 0.2s;display:flex;align-items:center;justify-content:center;" onmouseover="this.style.background='rgba(255,255,255,0.25)'" onmouseout="this.style.background='rgba(255,255,255,0.15)'">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
       </div>
-      <div style="display:flex;align-items:center;gap:4px;">
-        <button id="ai-chat-edit" style="background:rgba(255,255,255,0.15);border:none;color:#fff;cursor:pointer;padding:6px;border-radius:8px;transition:background 0.2s;display:flex;align-items:center;justify-content:center;" onmouseover="this.style.background='rgba(255,255,255,0.25)'" onmouseout="this.style.background='rgba(255,255,255,0.15)'">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+      <!-- Mode Toggle -->
+      <div id="ai-mode-toggle-container" style="display:flex;align-items:center;background:rgba(255,255,255,0.12);border-radius:10px;padding:3px;gap:0;">
+        <button id="ai-mode-chat" class="ai-mode-btn ai-mode-active" style="
+          flex:1;
+          padding:6px 12px;
+          border:none;
+          border-radius:8px;
+          font-size:0.75rem;
+          font-weight:600;
+          font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+          cursor:pointer;
+          transition:all 0.25s ease;
+          display:flex;
+          align-items:center;
+          justify-content:center;
+          gap:5px;
+          background:rgba(255,255,255,0.95);
+          color:#4f6ef3;
+        ">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
           </svg>
+          Chat
         </button>
-        <button id="ai-chat-close" style="background:rgba(255,255,255,0.15);border:none;color:#fff;cursor:pointer;padding:6px;border-radius:8px;transition:background 0.2s;display:flex;align-items:center;justify-content:center;" onmouseover="this.style.background='rgba(255,255,255,0.25)'" onmouseout="this.style.background='rgba(255,255,255,0.15)'">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="18" y1="6" x2="6" y2="18"></line>
-            <line x1="6" y1="6" x2="18" y2="18"></line>
+        <button id="ai-mode-rag" class="ai-mode-btn" style="
+          flex:1;
+          padding:6px 12px;
+          border:none;
+          border-radius:8px;
+          font-size:0.75rem;
+          font-weight:600;
+          font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+          cursor:pointer;
+          transition:all 0.25s ease;
+          display:flex;
+          align-items:center;
+          justify-content:center;
+          gap:5px;
+          background:transparent;
+          color:rgba(255,255,255,0.7);
+        ">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
+            <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
           </svg>
+          PM Expert
         </button>
       </div>
     </div>
     <div id="ai-chat-messages" style="flex:1;overflow-y:auto;padding:20px;background:${t().bg};"></div>
-    <div style="padding:8px 16px;text-align:center;color:${t().disclaimerText};font-size:0.7rem;font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+    <div id="ai-chat-disclaimer" style="padding:8px 16px;text-align:center;color:${t().disclaimerText};font-size:0.7rem;font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
       AI can make mistakes
     </div>
     <form id="ai-chat-form" style="display:flex;gap:8px;padding:12px 16px 16px;background:${t().bg};">
@@ -311,7 +400,9 @@
     </form>
   `;
 
-  // Responsive adjustments and hover effects
+  // ============================================================
+  // STYLE SHEET
+  // ============================================================
   const style = document.createElement('style');
   style.innerHTML = `
     @media (max-width: 600px) {
@@ -381,25 +472,12 @@
     }
 
     /* Custom scrollbar */
-    #ai-chat-messages::-webkit-scrollbar {
-      width: 6px;
-    }
-    #ai-chat-messages::-webkit-scrollbar-track {
-      background: transparent;
-    }
-    #ai-chat-messages::-webkit-scrollbar-thumb {
-      background: #cbd5e1;
-      border-radius: 3px;
-    }
-    #ai-chat-messages::-webkit-scrollbar-thumb:hover {
-      background: #94a3b8;
-    }
-    .dark #ai-chat-messages::-webkit-scrollbar-thumb {
-      background: #1e293b;
-    }
-    .dark #ai-chat-messages::-webkit-scrollbar-thumb:hover {
-      background: #334155;
-    }
+    #ai-chat-messages::-webkit-scrollbar { width: 6px; }
+    #ai-chat-messages::-webkit-scrollbar-track { background: transparent; }
+    #ai-chat-messages::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+    #ai-chat-messages::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    .dark #ai-chat-messages::-webkit-scrollbar-thumb { background: #1e293b; }
+    .dark #ai-chat-messages::-webkit-scrollbar-thumb:hover { background: #334155; }
 
     /* Feedback buttons */
     .ai-fb-btn {
@@ -408,14 +486,52 @@
     .ai-fb-btn:active:not(:disabled) {
       transform: scale(0.9);
     }
+
+    /* Mode toggle transitions */
+    .ai-mode-btn {
+      transition: all 0.25s ease !important;
+    }
+    .ai-mode-btn:hover:not(.ai-mode-active) {
+      color: rgba(255,255,255,0.9) !important;
+      background: rgba(255,255,255,0.08) !important;
+    }
+
+    /* Typing animation */
+    @keyframes typingDot {
+      0%, 60%, 100% { transform: translateY(0); opacity: 0.5; }
+      30% { transform: translateY(-6px); opacity: 1; }
+    }
+
+    /* RAG badge */
+    .ai-rag-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 0.65rem;
+      font-weight: 500;
+      padding: 2px 8px;
+      border-radius: 6px;
+      margin-top: 6px;
+      font-family: system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+    }
+
+    /* RAG source footer */
+    .ai-rag-sources {
+      font-size: 0.65rem;
+      margin-top: 8px;
+      padding-top: 6px;
+      font-family: system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+      line-height: 1.4;
+    }
   `;
   document.head.appendChild(style);
 
-  // Show/hide chat window
+  // ============================================================
+  // SHOW/HIDE CHAT WINDOW
+  // ============================================================
   bubble.onclick = () => {
     chatWindow.style.display = 'flex';
     bubble.style.display = 'none';
-    // Remove pulse and tooltip after first interaction
     if (bubble.classList.contains('ai-chat-bubble-pulse')) {
       bubble.classList.remove('ai-chat-bubble-pulse');
       const tooltip = document.getElementById('ai-chat-bubble-tooltip');
@@ -428,22 +544,68 @@
     bubble.style.display = 'flex';
   };
 
-  // Chat logic
+  // ============================================================
+  // EL REFERENCES
+  // ============================================================
   const messagesDiv = chatWindow.querySelector('#ai-chat-messages');
   const form = chatWindow.querySelector('#ai-chat-form');
   const input = chatWindow.querySelector('#ai-chat-input');
-  let history = [];
-  let sessionId = 'session-' + Date.now() + '-' + Math.random().toString(36).substring(2);
+  const headerEl = chatWindow.querySelector('#ai-chat-header');
+  const subtitleEl = chatWindow.querySelector('#ai-chat-subtitle');
+  const modeChatBtn = chatWindow.querySelector('#ai-mode-chat');
+  const modeRagBtn = chatWindow.querySelector('#ai-mode-rag');
 
-  // Suggested questions
-  const suggestedQuestions = [
-    "Show me your latest project",
-    "What are your skills?",
-    "Tell me about your Product Management experience"
-  ];
+  // ============================================================
+  // MODE TOGGLE LOGIC
+  // ============================================================
+  function setMode(mode) {
+    if (mode === chatMode) return;
+    chatMode = mode;
 
-  // Add suggested questions to the chat window
+    // Update toggle button styles
+    if (mode === 'chat') {
+      modeChatBtn.style.background = 'rgba(255,255,255,0.95)';
+      modeChatBtn.style.color = '#4f6ef3';
+      modeChatBtn.classList.add('ai-mode-active');
+      modeRagBtn.style.background = 'transparent';
+      modeRagBtn.style.color = 'rgba(255,255,255,0.7)';
+      modeRagBtn.classList.remove('ai-mode-active');
+      headerEl.style.background = GRADIENT;
+      input.placeholder = 'Ask about my work...';
+    } else {
+      modeRagBtn.style.background = 'rgba(255,255,255,0.95)';
+      modeRagBtn.style.color = '#10b981';
+      modeRagBtn.classList.add('ai-mode-active');
+      modeChatBtn.style.background = 'transparent';
+      modeChatBtn.style.color = 'rgba(255,255,255,0.7)';
+      modeChatBtn.classList.remove('ai-mode-active');
+      headerEl.style.background = RAG_GRADIENT;
+      input.placeholder = 'Ask a PM interview question...';
+    }
+
+    // Update subtitle
+    subtitleEl.textContent = subtitleByMode[mode];
+
+    // Clear conversation
+    messagesDiv.innerHTML = '';
+    history = [];
+    sessionId = 'session-' + Date.now() + '-' + Math.random().toString(36).substring(2);
+
+    // Show mode-specific suggested questions
+    showSuggestedQuestions();
+    input.focus();
+  }
+
+  modeChatBtn.onclick = () => setMode('chat');
+  modeRagBtn.onclick = () => setMode('rag');
+
+  // ============================================================
+  // SUGGESTED QUESTIONS
+  // ============================================================
   function showSuggestedQuestions() {
+    const existing = document.getElementById('ai-suggested-questions');
+    if (existing) existing.remove();
+
     const container = document.createElement('div');
     container.id = 'ai-suggested-questions';
     container.style.display = 'flex';
@@ -451,7 +613,8 @@
     container.style.gap = '8px';
     container.style.marginBottom = '16px';
 
-    suggestedQuestions.forEach(question => {
+    const questions = suggestedByMode[chatMode];
+    questions.forEach(question => {
       const chip = document.createElement('div');
       chip.className = 'suggested-question-bubble';
       chip.style.padding = '12px 16px';
@@ -466,23 +629,28 @@
       chip.style.boxShadow = `0 1px 4px ${t().shadow}`;
       chip.textContent = question;
 
+      // If in RAG mode, add a subtle green left-border
+      if (chatMode === 'rag') {
+        chip.style.borderLeft = '3px solid #10b981';
+      }
+
       chip.onmouseover = () => {
         chip.style.background = t().chipHover;
-        chip.style.borderColor = '#6b8ef7';
+        chip.style.borderColor = chatMode === 'rag' ? '#10b981' : '#6b8ef7';
         chip.style.boxShadow = `0 2px 10px ${t().shadowHeavy}`;
+        if (chatMode === 'rag') chip.style.borderLeft = '3px solid #10b981';
       };
       chip.onmouseout = () => {
         chip.style.background = t().chipBg;
         chip.style.borderColor = t().chipBorder;
         chip.style.boxShadow = `0 1px 4px ${t().shadow}`;
+        if (chatMode === 'rag') chip.style.borderLeft = '3px solid #10b981';
       };
       chip.onclick = () => {
         input.value = question;
         form.dispatchEvent(new Event('submit'));
         const suggestedContainer = document.getElementById('ai-suggested-questions');
-        if (suggestedContainer) {
-          suggestedContainer.remove();
-        }
+        if (suggestedContainer) suggestedContainer.remove();
       };
 
       container.appendChild(chip);
@@ -491,10 +659,13 @@
     messagesDiv.appendChild(container);
   }
 
-  // Show suggested questions on load
+  // Show initial suggested questions
   showSuggestedQuestions();
 
-  function appendMessage(role, text, traceId) {
+  // ============================================================
+  // MESSAGE RENDERING
+  // ============================================================
+  function appendMessage(role, text, traceId, metadata) {
     const msg = document.createElement('div');
     const isUser = role === 'user';
 
@@ -503,24 +674,55 @@
     msg.style.justifyContent = isUser ? 'flex-end' : 'flex-start';
 
     if (isUser) {
+      const userGradient = chatMode === 'rag' ? RAG_GRADIENT : GRADIENT;
       msg.innerHTML = `
         <div style="
           max-width:82%;
           padding:12px 18px;
           border-radius:16px 16px 4px 16px;
-          background:${GRADIENT};
+          background:${userGradient};
           color:#ffffff;
           font-size:0.9rem;
           line-height:1.6;
           word-break:break-word;
           font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
-          box-shadow:0 2px 10px rgba(79,110,243,0.2);
+          box-shadow:0 2px 10px ${chatMode === 'rag' ? 'rgba(16,185,129,0.2)' : 'rgba(79,110,243,0.2)'};
         ">
           ${text}
         </div>
       `;
     } else {
       const bubbleId = 'fb-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6);
+      const isRag = metadata?.mode === 'rag';
+      const retrievedAtoms = metadata?.retrievedAtoms || [];
+
+      // Build sources footer for RAG mode
+      let sourcesHtml = '';
+      if (isRag && retrievedAtoms.length > 0) {
+        const sourceLabels = retrievedAtoms.map(a =>
+          `<span style="background:${t().ragBadgeBg};color:${t().ragBadgeText};padding:1px 6px;border-radius:4px;border:1px solid ${t().ragBadgeBorder};">${typeof a === 'string' ? a : a.title}</span>`
+        ).join(' ');
+        sourcesHtml = `
+          <div class="ai-rag-sources" style="color:${t().muted};border-top:1px solid ${t().border};">
+            <span style="opacity:0.7;">Sources:</span> ${sourceLabels}
+          </div>
+        `;
+      }
+
+      // RAG badge
+      let ragBadgeHtml = '';
+      if (isRag) {
+        ragBadgeHtml = `
+          <div class="ai-rag-badge" style="background:${t().ragBadgeBg};color:${t().ragBadgeText};border:1px solid ${t().ragBadgeBorder};">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
+              <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
+            </svg>
+            PM Knowledge
+          </div>
+        `;
+      }
+
       msg.innerHTML = `
         <div style="max-width:82%;">
           <div style="
@@ -532,10 +734,12 @@
             line-height:1.6;
             word-break:break-word;
             font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
-            border:1px solid ${t().border};
+            border:1px solid ${isRag ? t().ragBadgeBorder : t().border};
           ">
             ${text}
+            ${sourcesHtml}
           </div>
+          ${ragBadgeHtml}
           ${traceId ? `
           <div id="${bubbleId}" style="display:flex;align-items:center;gap:2px;margin-top:4px;padding-left:4px;">
             <button class="ai-fb-btn" data-trace="${traceId}" data-score="1" style="
@@ -561,7 +765,6 @@
         container.querySelectorAll('.ai-fb-btn').forEach(btn => {
           btn.onclick = async () => {
             const score = parseInt(btn.dataset.score);
-            // Mark selected, disable both
             container.querySelectorAll('.ai-fb-btn').forEach(b => {
               b.disabled = true;
               b.style.cursor = 'default';
@@ -576,7 +779,6 @@
                 b.style.color = t().muted;
               }
             });
-            // Send feedback
             try {
               await fetch('/api/chat/feedback', {
                 method: 'POST',
@@ -584,27 +786,32 @@
                 body: JSON.stringify({
                   traceId: btn.dataset.trace,
                   score,
-                  category: 'inline-thumbs'
-                })
+                  category: chatMode === 'rag' ? 'inline-thumbs-rag' : 'inline-thumbs',
+                }),
               });
             } catch (e) { /* silent */ }
           };
         });
       }
     }
+
     messagesDiv.appendChild(msg);
     messagesDiv.scrollTop = messagesDiv.scrollHeight;
   }
 
-
-  // Create typing indicator
+  // ============================================================
+  // TYPING INDICATOR
+  // ============================================================
   function createTypingIndicator() {
     const msg = document.createElement('div');
-
     msg.className = 'typing-indicator';
     msg.style.marginBottom = '12px';
     msg.style.display = 'flex';
     msg.style.justifyContent = 'flex-start';
+
+    const dotColor1 = chatMode === 'rag' ? '#10b981' : '#6b8ef7';
+    const dotColor2 = chatMode === 'rag' ? '#06b6d4' : '#8b5cf6';
+    const dotColor3 = chatMode === 'rag' ? '#34d399' : '#a78bfa';
 
     msg.innerHTML = `
       <div style="
@@ -612,39 +819,30 @@
         padding:14px 18px;
         border-radius:16px 16px 16px 4px;
         background:${t().botBubble};
-        border:1px solid ${t().border};
+        border:1px solid ${chatMode === 'rag' ? t().ragBadgeBorder : t().border};
         font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
       ">
         <div class="typing-dots" style="display:flex;gap:5px;align-items:center;">
-          <span style="width:7px;height:7px;border-radius:50%;background:#6b8ef7;opacity:0.7;animation:typingDot 1.4s infinite;"></span>
-          <span style="width:7px;height:7px;border-radius:50%;background:#8b5cf6;opacity:0.7;animation:typingDot 1.4s infinite 0.2s;"></span>
-          <span style="width:7px;height:7px;border-radius:50%;background:#a78bfa;opacity:0.7;animation:typingDot 1.4s infinite 0.4s;"></span>
+          <span style="width:7px;height:7px;border-radius:50%;background:${dotColor1};opacity:0.7;animation:typingDot 1.4s infinite;"></span>
+          <span style="width:7px;height:7px;border-radius:50%;background:${dotColor2};opacity:0.7;animation:typingDot 1.4s infinite 0.2s;"></span>
+          <span style="width:7px;height:7px;border-radius:50%;background:${dotColor3};opacity:0.7;animation:typingDot 1.4s infinite 0.4s;"></span>
         </div>
       </div>
     `;
     return msg;
   }
 
-  // Add typing animation CSS
-  const typingStyle = document.createElement('style');
-  typingStyle.innerHTML = `
-    @keyframes typingDot {
-      0%, 60%, 100% { transform: translateY(0); opacity: 0.5; }
-      30% { transform: translateY(-6px); opacity: 1; }
-    }
-  `;
-  document.head.appendChild(typingStyle);
-
+  // ============================================================
+  // FORM SUBMISSION — Routes to correct endpoint based on mode
+  // ============================================================
   form.onsubmit = async (e) => {
     e.preventDefault();
     const userMsg = input.value.trim();
     if (!userMsg) return;
 
-    // Remove suggested questions when user sends a message
+    // Remove suggested questions
     const suggestedContainer = document.getElementById('ai-suggested-questions');
-    if (suggestedContainer) {
-      suggestedContainer.remove();
-    }
+    if (suggestedContainer) suggestedContainer.remove();
 
     appendMessage('user', userMsg);
     history.push({ role: 'user', content: userMsg });
@@ -654,42 +852,46 @@
     messagesDiv.appendChild(typingIndicator);
     messagesDiv.scrollTop = messagesDiv.scrollHeight;
 
+    // Choose endpoint based on mode
+    const endpoint = chatMode === 'rag' ? '/api/chat/rag' : '/api/chat';
+
     try {
-      const res = await fetch('/api/chat', {
+      const res = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: userMsg, history: history.slice(-20), sessionId })
+        body: JSON.stringify({ message: userMsg, history: history.slice(-20), sessionId }),
       });
       const data = await res.json();
       typingIndicator.remove();
       if (data.reply) {
-        appendMessage('ai', data.reply, data.traceId || null);
+        appendMessage('ai', data.reply, data.traceId || null, data.metadata || null);
         history.push({ role: 'assistant', content: data.reply });
       } else if (data.error) {
-        appendMessage('ai', "Error: " + (typeof data.error === "string" ? data.error : JSON.stringify(data.error)));
+        appendMessage('ai', 'Error: ' + (typeof data.error === 'string' ? data.error : JSON.stringify(data.error)));
       } else {
         appendMessage('ai', 'Sorry, there was an unknown error.');
       }
     } catch (err) {
       typingIndicator.remove();
-      appendMessage('ai', 'Sorry, there was an error.');
+      appendMessage('ai', 'Sorry, there was an error connecting to the server.');
     }
   };
 
-  // Add functionality to edit and history buttons
+  // ============================================================
+  // EDIT (NEW CONVERSATION) BUTTON
+  // ============================================================
   const editBtn = chatWindow.querySelector('#ai-chat-edit');
-
   editBtn.onclick = () => {
-    // Clear current conversation
     messagesDiv.innerHTML = '';
     history = [];
     sessionId = 'session-' + Date.now() + '-' + Math.random().toString(36).substring(2);
-    // Show suggested questions again
     showSuggestedQuestions();
     input.focus();
   };
 
-  // Handle clicks on "Chat with my AI" button from homepage
+  // ============================================================
+  // EXTERNAL LINKS TO OPEN CHAT
+  // ============================================================
   document.addEventListener('click', (e) => {
     const target = e.target.closest('a');
     if (target) {
