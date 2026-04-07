@@ -7,10 +7,7 @@ https://www.ronaksethiya.com/* https://ronaksethiya.com/:splat 301!
 # Ensure HTTPS
 http://* https://:splat 301!
 
-# AI Chat API proxy to Cloudflare Worker
-/api/chat/rag https://ai-chat-proxy.ronakss-rj.workers.dev/rag 200
-/api/chat/feedback https://ai-chat-proxy.ronakss-rj.workers.dev/feedback 200
-/api/chat https://ai-chat-proxy.ronakss-rj.workers.dev 200
+# AI Chat API — handled by Pages Functions in /functions/api/chat/
 
 # Handle index files
 /index.html / 301!
