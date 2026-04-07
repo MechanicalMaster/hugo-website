@@ -8,7 +8,9 @@ https://www.ronaksethiya.com/* https://ronaksethiya.com/:splat 301!
 http://* https://:splat 301!
 
 # AI Chat API proxy to Cloudflare Worker
-/api/chat https://ai-chat-proxy.ronaksethiya.workers.dev/api/chat 200
+/api/chat/rag https://ai-chat-proxy.ronakss-rj.workers.dev/rag 200
+/api/chat/feedback https://ai-chat-proxy.ronakss-rj.workers.dev/feedback 200
+/api/chat https://ai-chat-proxy.ronakss-rj.workers.dev 200
 
 # Handle index files
 /index.html / 301!
